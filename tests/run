@@ -1,0 +1,5 @@
+#!/bin/bash
+
+for f in tests/*.cc; do
+   tests/test.js $f
+done

@@ -21,13 +21,17 @@ function interpretedOutput(_callback) {
    childProcess.exec("./cc.js " + FILE, returnStdOut(_callback));
 }
 
+var out = process.stdout;
+
 realOutput(function (rOutput) {
    interpretedOutput(function (iOutput) {
       fs.unlink("a.out");
+      out.write(FILE + ": ");
       if (rOutput == iOutput) {
-         console.log('PASS');
+         out.write("PASS");
       } else {
-         console.log('FAIL');
+         out.write("FAIL");
       }
+      out.write("\n");
    });
 });
