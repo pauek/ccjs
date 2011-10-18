@@ -34,7 +34,7 @@ fs.readFile(opts.ccfile, 'utf-8', function (err, data) {
       tree.walk(R);
       console.log(R.output);
    } else {
-      console.log("<Here there would be the output of the program...>");
+      interpret(tree);
    }
 });
 

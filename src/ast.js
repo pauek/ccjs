@@ -35,13 +35,12 @@ ast.Node.prototype = {
       for (var i in types) {
          var method = prefix + types[i];
          if (method in visitor) {
-            visitor[method].call(visitor, this);
-            return;
+            return visitor[method].call(visitor, this);
          } 
       }
    },
    visit: function (visitor) {
-      this.__accept__('visit', visitor);
+      return this.__accept__('visit', visitor);
    },
    walk: function (walker) {
       this.__accept__('enter', walker);
@@ -114,6 +113,12 @@ ast.showTree = {
    },
    departNode: function (obj) {
       if (obj.isGroup()) this.indent -= 3;
+   },
+   enterOutputElement: function (obj) {
+      this.log("OutputElement");
+      this.indent += 3;
+      obj.expr.walk(this);
+      this.indent -= 3;
    }
 }
 
@@ -198,8 +203,4 @@ ast.Rewriter.prototype = {
       this.w(obj.name.id);
    },
 }
-
-/* Export */
-
-module.exports = ast;
 

@@ -13,7 +13,7 @@ __ =
 _ =
    (WhiteSpace / MultiLineCommentOneLine / SingleLineComment)*
 
-Literal = [0-9]
+Literal = num:[0-9] { return parseInt(num); }
 
 DecimalDigit
   = [0-9]
@@ -114,10 +114,10 @@ FormalParameterList =
    }
 
 VariableDeclaration =
-   name:Identifier (__ "=" __ value:Literal)? {
+   name:Identifier value:(__ "=" __ Literal)? {
       var result = { name: name };
-      if (typeof value != 'undefined') {
-         result.value = value;
+      if (typeof value[3] != 'undefined') {
+         result.value = value[3];
       }
       return new ast.VariableDeclaration(result);
    }

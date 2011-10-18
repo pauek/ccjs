@@ -23,6 +23,7 @@ function interpretedOutput(_callback) {
 
 realOutput(function (rOutput) {
    interpretedOutput(function (iOutput) {
+      fs.unlink("a.out");
       if (rOutput == iOutput) {
          console.log('PASS');
       } else {
