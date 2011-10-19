@@ -96,11 +96,18 @@ var nodeTypes = [
    "VectorDeclaration",
    "VectorDeclarationStatement",
 
+   "AssignmentExpression",
+   "LogicalANDExpression",
+   "LogicalORExpression",
+   "ComparisonExpression",
+
+   "AssignmentStatement",
    "InputStatement",
    "OutputStatement",
    "OutputElement",
-	"ForStmt", 
-	"WhileStmt",
+	"IfStatement",
+	"WhileStatement",
+	"ForStatement", 
    "Block",
    "BinaryExpression",
 

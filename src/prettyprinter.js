@@ -42,8 +42,51 @@ ast.declareMethod("prettyPrint", {
    },
    OutputStatement: function (out) {
       out.w(this.head);
-      this.nextMethod(out);
+      this.forEachChild(function (child) {
+         out.w(" << ");
+         child.prettyPrint(out);
+      });
       out.p(";");
+   },
+   InputStatement: function (out) {
+      out.w(this.head);
+      this.forEachChild(function (child) {
+         out.w(" >> ");
+         child.prettyPrint(out);
+      });
+      out.p(";");
+   },
+   AssignmentStatement: function (out) {
+      this.expr.prettyPrint(out);
+      out.p(";");
+   },
+   AssignmentExpression: function (out) {
+      this.lvalue.prettyPrint(out);
+      out.w(" " + this.operator + " ");
+      this.rvalue.prettyPrint(out);
+   },
+   WhileStatement: function (out) {
+      out.w("while (");
+      this.cond.prettyPrint(out);
+      out.p(") {");
+      out.i(+1);
+      this.nextMethod(out);
+      out.i(-1);
+      out.p("}");
+   },
+   IfStatement: function (out) {
+      out.w("if (");
+      this.cond.prettyPrint(out);
+      out.p(") {");
+      out.i(+1);
+      this.nextMethod(out);
+      out.i(-1);
+      out.p("}");
+   },
+   BinaryExpression: function (out) {
+      this.left.prettyPrint(out);
+      out.w(" " + this.operator + " ");
+      this.right.prettyPrint(out);
    },
    ActualParameterList: function (out) {
       out.w("(");
@@ -67,6 +110,24 @@ ast.declareMethod("prettyPrint", {
    },
    Type: function (out) {
       out.w(this.name);
+   },
+   VariableDeclaration: function (out) {
+      out.w(this.name.id);
+      if (this.value !== undefined) {
+         out.w(" ");
+         this.value.prettyPrint(out);
+      }
+   },
+   VariableDeclarationStatement: function (out) {
+      this.type.prettyPrint(out);
+      out.w(" ");
+      var i = 0;
+      this.forEachChild(function (child) {
+         if (i != 0) out.w(", ");
+         child.prettyPrint(out);
+         i++;
+      });
+      out.p(";");
    },
    VariableReference: function (out) {
       out.w(this.name.id);

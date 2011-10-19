@@ -29,9 +29,14 @@ fs.readFile(opts.ccfile, 'utf-8', function (err, data) {
    var tree = cc.parse(data);
    if ('ast' in opts) {
       var P = new PrintState();
-      tree.printTree(P);
-      console.log(P.output);
-      console.log(tree.nodeCount());
+      try {
+         tree.printTree(P);
+         console.log(P.output);
+         console.log(tree.nodeCount());
+      } catch (e) {
+         console.log(P.output);
+         console.log(e);
+      }
    } else if ('prettyprint' in opts) {
       var P = new PrintState();
       tree.prettyPrint(P);

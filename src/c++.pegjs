@@ -13,18 +13,6 @@ __ =
 _ =
    (WhiteSpace / MultiLineCommentOneLine / SingleLineComment)*
 
-Literal = 
-   StringLiteral /
-   IntegerLiteral
-
-IntegerLiteral =
-   num:[0-9] { 
-      return new ast.IntegerLiteral({ lit: parseInt(num) }); 
-   }
-
-DecimalDigit
-  = [0-9]
-
 MultiLineComment =
    "/*" (!"*/" SourceCharacter)* "*/"
 
@@ -43,10 +31,21 @@ Identifier =
       return new ast.Identifier({ id: name[0] + name[1].join('') });
    }
 
-Expression =
-   Literal /
-   ArrayReference /
-   VariableReference
+DecimalIntegerLiteral = 
+   "0" / 
+   sign:"-"? head:NonZeroDigit tail:DecimalDigits? { 
+      return new ast.IntegerLiteral({ lit: parseInt(sign + head + tail) });
+   }
+
+DecimalDigits
+  = digits:DecimalDigit+ { return digits.join(""); }
+
+DecimalDigit = [0-9]
+NonZeroDigit = [1-9]
+
+Literal = 
+   StringLiteral /
+   DecimalIntegerLiteral
 
 StringLiteral "string" = 
    '"' literal:StringCharacters? '"' {
@@ -100,6 +99,105 @@ Type = name:("int" / "char" / "float" / "void") {
      return new ast.Type({ name: name });
    }
 
+PrimaryExpression =
+   Literal /
+   ReferenceExpression
+
+ReferenceExpression =
+   ArrayReference /
+   VariableReference
+
+ComparisonOperator = "==" / "!=" / "<=" / ">=" / ">" / "<"
+
+MultiplicativeOperator
+  = operator:("*" / "/" / "%") !"=" { return operator; }
+
+MultiplicativeExpression =
+   head:PrimaryExpression
+   tail:(__ MultiplicativeOperator __ PrimaryExpression)* {
+      var result = head;
+      for (var i = 0; i < tail.length; i++) {
+         result = new ast.BinaryExpression({
+            left:     result,
+            operator: tail[i][1],
+            right:    tail[i][3],
+         });
+      }
+      return result;
+   } /
+   PrimaryExpression
+
+AdditiveOperator = 
+  "+" !("+" / "=") { return "+"; } / 
+  "-" !("-" / "=") { return "-"; }
+
+AdditiveExpression =
+   head:MultiplicativeExpression
+   tail:(__ AdditiveOperator __ MultiplicativeExpression)* {
+      var result = head;
+      for (var i = 0; i < tail.length; i++) {
+         result = new ast.BinaryExpression({
+            left:     result,
+            operator: tail[i][1],
+            right:    tail[i][3],
+         });
+      }
+      return result;
+   } /
+   MultiplicativeExpression
+
+ComparisonExpression =
+   left:AdditiveExpression __ 
+   operator:ComparisonOperator __ 
+   right:AdditiveExpression {
+      return new ast.BinaryExpression({ 
+         left: left, 
+         operator: operator, 
+         right: right 
+      });
+   } /
+   AdditiveExpression
+
+AssignmentOperator = "+=" / "*=" / "/=" / "-=" / "=" 
+
+LogicalANDExpression =
+   head:ComparisonExpression tail:(__ "&&" __ ComparisonExpression)+ {
+      var result = [head];
+      for (var i = 0; i < tail.length; i++) {
+         result.push(tail[i][3]);
+      }
+      return new ast.LogicalANDExpression({}, result);
+   }
+
+LogicalORExpression =
+   head:LogicalANDExpression tail:(__ "||" __ LogicalANDExpression)+ {
+      var result = [head];
+      for (var i = 0; i < tail.length; i++) {
+         result.push(tail[i][3]);
+      }
+      return new ast.LogicalORExpression({}, result);
+   }
+
+Condition =
+   LogicalANDExpression /
+   LogicalORExpression /
+   ComparisonExpression
+
+AssignmentExpression =
+   lvalue:ReferenceExpression __ 
+   operator:AssignmentOperator __ 
+   rvalue:AssignmentExpression {
+      return new ast.AssignmentExpression({ 
+         lvalue:   lvalue, 
+         operator: operator, 
+         rvalue:   rvalue 
+      });
+   } /
+   Condition
+
+Expression = 
+   AssignmentExpression
+
 VariableReference =
    name:Identifier { return new ast.VariableReference({ name: name }); }
 
@@ -123,7 +221,7 @@ FormalParameterList =
    }
 
 VariableDeclaration =
-   name:Identifier value:(__ "=" __ Literal)? {
+   name:Identifier value:(__ "=" __ Expression)? {
       var result = { name: name };
       if (typeof value[3] != 'undefined') {
          result.value = value[3];
@@ -188,25 +286,48 @@ VectorDeclarationStatement =
       return new ast.VectorDeclarationStatement({ type: type }, lst);
    }
 
-OutputElement = 
-   e:Expression {
-      return new ast.OutputElement({ expr: e });
-   }
-
 OutputStatement =
-   "cout" elems:(__ "<<" __ OutputElement)* ";" {
+   "cout" elems:(__ "<<" __ Expression)* __ ";" {
       var elements = [];
-      for (var i in elems) {
+      for (var i = 0; i < elems.length; i++) {
          elements.push(elems[i][3]);
       }
       return new ast.OutputStatement({ head: "cout" }, elements);
    }
 
+InputStatement =
+   "cin" elems:(__ ">>" __ ReferenceExpression)* __ ";" {
+      var elements = [];
+      for (var i = 0; i < elems.length; i++) {
+         elements.push(elems[i][3]);
+      }
+      return new ast.InputStatement({ head: "cin" }, elements);
+   }
+
 Statement =
    VectorDeclarationStatement /
    VariableDeclarationStatement /
-   FunctionCall /
-   OutputStatement
+   IfStatement /
+   WhileStatement /
+   InputStatement /
+   AssignmentStatement /
+   OutputStatement /
+   FunctionCall
+
+AssignmentStatement = 
+   expr:AssignmentExpression __ ";" {
+      return new ast.AssignmentStatement({ expr: expr });
+   }
+
+WhileStatement =
+   "while" __ "(" __ cond:Condition __ ")" __ body:StatementBlock {
+      return new ast.WhileStatement({ cond: cond }, body);
+   }
+
+IfStatement =
+   "if" __ "(" __ cond:Condition __ ")" __ body:StatementBlock {
+      return new ast.IfStatement({ cond: cond }, body);
+   }
 
 StatementList =
    head:Statement tail:(__ Statement)* {
@@ -217,20 +338,25 @@ StatementList =
       return result;
    }
 
+StatementBlock =
+   "{" __ lst:StatementList __ "}" {
+      return lst;
+   }
+
 FunctionCall =
    name:Identifier __ args:ActualParameterList __ ";" {
       return new ast.FunctionCall({ name: name, args: args });
    }
 
-
-FunctionBody =
-   StatementList
-
 FunctionDef =
-   type:Type _ name:Identifier 
-   "(" __ params:FormalParameterList? __ ")" __
-   "{" __ body:FunctionBody? __ "}" {
-      return new ast.FunctionDef({ type: type, name: name, params: params }, body);
+   type:Type _ name:Identifier __ 
+   "(" __ params:FormalParameterList? __ ")" __ 
+   body:StatementBlock {
+      return new ast.FunctionDef({ 
+         type: type, 
+         name: name, 
+         params: params 
+      }, body);
    }
 
 IncludeDirective "include" =
