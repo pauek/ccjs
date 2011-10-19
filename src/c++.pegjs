@@ -96,7 +96,7 @@ LineContinuation
 
 LineTerminatorSequence "end of line" = "\n" / "\r\n" / "\r"
 
-Type = name:("int" / "char" / "float") {
+Type = name:("int" / "char" / "float" / "void") {
      return new ast.Type({ name: name });
    }
 
@@ -110,10 +110,7 @@ ArrayReference =
 
 FormalParameter =
    type:Type _ name:Identifier {
-      return {
-         type: type,
-         name: name
-      }
+      return new ast.FormalParameter({ type: type, name: name });
    }
 
 FormalParameterList =
@@ -208,6 +205,7 @@ OutputStatement =
 Statement =
    VectorDeclarationStatement /
    VariableDeclarationStatement /
+   FunctionCall /
    OutputStatement
 
 StatementList =
@@ -219,15 +217,20 @@ StatementList =
       return result;
    }
 
+FunctionCall =
+   name:Identifier __ args:ActualParameterList __ ";" {
+      return new ast.FunctionCall({ name: name, args: args });
+   }
+
 
 FunctionBody =
    StatementList
 
 FunctionDef =
-   t:Type _ n:Identifier 
-   "(" __ p:FormalParameterList? __ ")" __
+   type:Type _ name:Identifier 
+   "(" __ params:FormalParameterList? __ ")" __
    "{" __ body:FunctionBody? __ "}" {
-      return new ast.FunctionDef({ type: t, name: n, params: p }, body);
+      return new ast.FunctionDef({ type: type, name: name, params: params }, body);
    }
 
 IncludeDirective "include" =

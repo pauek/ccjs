@@ -33,6 +33,10 @@ ast.declareMethod("prettyPrint", {
       out.i(-1);
       out.p("}");
    },
+   FormalParameter: function (out) {
+      this.type.prettyPrint(out);
+      out.w(" " + this.name.id);
+   },
    Identifier: function (out) {
       out.w(this.id);
    },
@@ -93,6 +97,11 @@ ast.declareMethod("prettyPrint", {
       out.w(this.name.id + "[");
       this.index.prettyPrint(out);
       out.w("]");
+   },
+   FunctionCall: function (out) {
+      out.w(this.name.id);
+      this.args.prettyPrint(out);
+      out.p(";");
    },
 });
 

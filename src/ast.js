@@ -79,7 +79,10 @@ var nodeTypes = [
 
    "Identifier",
    "FunctionDef", 
+   "FunctionCall",
    "ActualParameterList",
+   "FormalParameter",
+   "FormalParameterList",
    "Program", 
 
    "VariableReference",
@@ -186,6 +189,18 @@ ast.declareMethod("printTree", {
       out.p("OutputElement");
       out.i(+1);
       this.expr.printTree(out);
+      out.i(-1);
+   },
+   FunctionDef: function (out) {
+      out.p("FunctionDef");
+      out.i(+2);
+      for (var i = 0; i < this.params.length; i++) {
+         this.params[i].printTree(out);
+      }
+      out.i(-1);
+      this.forEachChild(function (child) {
+         child.printTree(out);
+      });
       out.i(-1);
    }
 });
