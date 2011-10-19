@@ -32,7 +32,9 @@ Identifier =
    }
 
 DecimalIntegerLiteral = 
-   "0" / 
+   "0" { 
+      return new ast.IntegerLiteral({ lit: 0 }); 
+   } / 
    sign:"-"? head:NonZeroDigit tail:DecimalDigits? { 
       return new ast.IntegerLiteral({ lit: parseInt(sign + head + tail) });
    }
@@ -107,13 +109,34 @@ ReferenceExpression =
    ArrayReference /
    VariableReference
 
-ComparisonOperator = "==" / "!=" / "<=" / ">=" / ">" / "<"
+PostfixExpression = 
+   left:ReferenceExpression _ operator:PostfixOperator {
+      return new ast.PostfixExpression({
+        left:     left,
+        operator: operator,
+      });
+    } / 
+    PrimaryExpression
+
+PostfixOperator = "++" / "--"
+
+UnaryExpression = 
+  PostfixExpression / 
+  operator:UnaryOperator __ expression:UnaryExpression {
+     return new ast.UnaryExpression({ 
+        operator: operator, 
+        right: right 
+     });
+  }
+
+UnaryOperator = "++" / "--" / "+" / "-" / "~" / "!"
+
 
 MultiplicativeOperator
   = operator:("*" / "/" / "%") !"=" { return operator; }
 
 MultiplicativeExpression =
-   head:PrimaryExpression
+   head:UnaryExpression
    tail:(__ MultiplicativeOperator __ PrimaryExpression)* {
       var result = head;
       for (var i = 0; i < tail.length; i++) {
@@ -145,6 +168,8 @@ AdditiveExpression =
       return result;
    } /
    MultiplicativeExpression
+
+ComparisonOperator = "==" / "!=" / "<=" / ">=" / ">" / "<"
 
 ComparisonExpression =
    left:AdditiveExpression __ 
@@ -309,6 +334,7 @@ Statement =
    VariableDeclarationStatement /
    IfStatement /
    WhileStatement /
+   ForStatement /
    InputStatement /
    AssignmentStatement /
    OutputStatement /
@@ -322,6 +348,15 @@ AssignmentStatement =
 WhileStatement =
    "while" __ "(" __ cond:Condition __ ")" __ body:StatementBlock {
       return new ast.WhileStatement({ cond: cond }, body);
+   }
+
+ForStatement =
+   "for" __ "(" __ 
+   init:AssignmentExpression __ ";" __ 
+   cond:Condition __ ";" __ 
+   incr:AssignmentExpression __ ")" __ 
+   body:StatementBlock {
+      return new ast.ForStatement({ init: init, cond: cond, incr: incr }, body);
    }
 
 IfStatement =

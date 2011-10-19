@@ -83,6 +83,23 @@ ast.declareMethod("prettyPrint", {
       out.i(-1);
       out.p("}");
    },
+   ForStatement: function (out) {
+      out.w("for (");
+      this.init.prettyPrint(out);
+      out.w("; ");
+      this.cond.prettyPrint(out);
+      out.w("; ");
+      this.incr.prettyPrint(out);
+      out.p(") {");
+      out.i(+1);
+      this.nextMethod(out);
+      out.i(-1);
+      out.p("}");
+   },
+   PostfixExpression: function (out) {
+      this.left.prettyPrint(out);
+      out.w(this.operator);
+   },
    BinaryExpression: function (out) {
       this.left.prettyPrint(out);
       out.w(" " + this.operator + " ");

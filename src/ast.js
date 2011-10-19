@@ -96,6 +96,8 @@ var nodeTypes = [
    "VectorDeclaration",
    "VectorDeclarationStatement",
 
+   "PostfixExpression",
+   "UnaryExpression",
    "AssignmentExpression",
    "LogicalANDExpression",
    "LogicalORExpression",
