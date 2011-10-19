@@ -14,8 +14,8 @@ for (var i in args) {
    var a = args[i];
    if (a == '--ast') {
       opts.ast = true;
-   } else if (a == '--rewrite') {
-      opts.rewrite = true;
+   } else if (a == '--prettyprint') {
+      opts.prettyprint = true;
    } else {
       opts.ccfile = a;
    }
@@ -32,7 +32,7 @@ fs.readFile(opts.ccfile, 'utf-8', function (err, data) {
       tree.printTree(P);
       console.log(P.output);
       console.log(tree.countNodes());
-   } else if ('rewrite' in opts) {
+   } else if ('prettyprint' in opts) {
       var P = new PrintState();
       tree.prettyPrint(P);
       console.log(P.output);
