@@ -74,6 +74,9 @@ var nodeTypes = [
    "IncludeDirective", 
 	"UsingDirective", 
 
+   "IntegerLiteral",
+   "StringLiteral",
+
    "Identifier",
    "FunctionDef", 
    "ActualParameterList",
@@ -82,6 +85,7 @@ var nodeTypes = [
    "VariableReference",
    "ArrayReference",
 
+   "Type", 
    "VectorType",
 
    "VariableDeclaration",
@@ -96,7 +100,7 @@ var nodeTypes = [
 	"WhileStmt",
    "Block",
    "BinaryExpression",
-   "StringLiteral",
+
 ];
 for (var i in nodeTypes) { 
    ast.makeNodeType(nodeTypes[i]); 

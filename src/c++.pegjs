@@ -13,7 +13,14 @@ __ =
 _ =
    (WhiteSpace / MultiLineCommentOneLine / SingleLineComment)*
 
-Literal = num:[0-9] { return parseInt(num); }
+Literal = 
+   StringLiteral /
+   IntegerLiteral
+
+IntegerLiteral =
+   num:[0-9] { 
+      return new ast.IntegerLiteral({ lit: parseInt(num) }); 
+   }
 
 DecimalDigit
   = [0-9]
@@ -38,7 +45,6 @@ Identifier =
 
 Expression =
    Literal /
-   StringLiteral /
    ArrayReference /
    VariableReference
 
@@ -90,10 +96,9 @@ LineContinuation
 
 LineTerminatorSequence "end of line" = "\n" / "\r\n" / "\r"
 
-Type =
-  "int" /
-  "char" /
-  "float"
+Type = name:("int" / "char" / "float") {
+     return new ast.Type({ name: name });
+   }
 
 VariableReference =
    name:Identifier { return new ast.VariableReference({ name: name }); }
