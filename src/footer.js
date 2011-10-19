@@ -31,7 +31,7 @@ fs.readFile(opts.ccfile, 'utf-8', function (err, data) {
       var P = new PrintState();
       tree.printTree(P);
       console.log(P.output);
-      console.log(tree.countNodes());
+      console.log(tree.nodeCount());
    } else if ('prettyprint' in opts) {
       var P = new PrintState();
       tree.prettyPrint(P);

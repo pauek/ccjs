@@ -188,12 +188,12 @@ ast.declareMethod("printTree", {
 
 // nodeCount
 
-ast.declareMethod("countNodes", {
+ast.declareMethod("nodeCount", {
    Node: function () {
       var count = 1;
       if (this.isGroup()) {
          this.forEachChild(function (child) {
-            count += child.countNodes();
+            count += child.nodeCount();
          });
       }
       return count;
