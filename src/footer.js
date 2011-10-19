@@ -28,11 +28,14 @@ if (!('ccfile' in opts)) {
 fs.readFile(opts.ccfile, 'utf-8', function (err, data) {
    var tree = cc.parse(data);
    if ('ast' in opts) {
-      tree.walk(ast.showTree);
+      var P = new PrintState();
+      tree.printTree(P);
+      console.log(P.output);
+      console.log(tree.countNodes());
    } else if ('rewrite' in opts) {
-      var R = new ast.Rewriter();
-      tree.walk(R);
-      console.log(R.output);
+      var P = new PrintState();
+      tree.prettyPrint(P);
+      console.log(P.output);
    } else {
       interpret(tree);
    }

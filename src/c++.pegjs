@@ -37,7 +37,9 @@ Identifier =
    }
 
 Expression =
+   Literal /
    StringLiteral /
+   ArrayReference /
    VariableReference
 
 StringLiteral "string" = 
@@ -94,7 +96,12 @@ Type =
   "float"
 
 VariableReference =
-   id:Identifier { return new ast.VariableReference({ name: id }); }
+   name:Identifier { return new ast.VariableReference({ name: name }); }
+
+ArrayReference =
+   name:Identifier _ "[" _ index:Expression _ "]" {
+      return new ast.ArrayReference({ name: name, index: index });
+   }
 
 FormalParameter =
    type:Type _ name:Identifier {
@@ -132,8 +139,51 @@ VariableDeclarationList =
    }
 
 VariableDeclarationStatement =
-   t:Type __ lst:VariableDeclarationList __ ";" {
-      return new ast.VariableDeclarationStatement({ type: t }, lst);
+   type:Type __ lst:VariableDeclarationList __ ";" {
+      return new ast.VariableDeclarationStatement({ type: type }, lst);
+   }
+
+
+ExpressionList = 
+  head:Expression tail:(__ "," __ Expression)* {
+     var result = [head];
+     for (var i = 0; i < tail.length; i++) {
+        result.push(tail[i][3]);
+     }  
+     return result;
+  }
+
+ActualParameterList =
+  "(" __ lst:ExpressionList? __ ")" {
+     return new ast.ActualParameterList({}, lst);
+  }
+
+VectorDeclaration =
+   name:Identifier params:(__ ActualParameterList)? {
+      var result = { name: name };
+      if (params[1] !== undefined) {
+         result.params = params[1];
+      }
+      return new ast.VectorDeclaration(result);
+   }
+
+VectorDeclarationList =
+   head:VectorDeclaration tail:(__ "," __ VectorDeclaration)* {
+      var result = [head];
+      for (var i = 0; i < tail.length; i++) {
+         result.push(tail[i][3]);
+      }
+      return result;
+   }                     
+
+VectorType =
+   "vector" _ "<" _ subtype:Type _ ">" {
+      return new ast.VectorType({ subtype: subtype });
+   }
+
+VectorDeclarationStatement =
+   type:VectorType __ lst:VectorDeclarationList __ ";" {
+      return new ast.VectorDeclarationStatement({ type: type }, lst);
    }
 
 OutputElement = 
@@ -151,6 +201,7 @@ OutputStatement =
    }
 
 Statement =
+   VectorDeclarationStatement /
    VariableDeclarationStatement /
    OutputStatement
 
