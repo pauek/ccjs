@@ -8,11 +8,11 @@ ast.__inherit__ = (function() {
    var F = function (typename) {
       this.typename = typename;
    };
-   return function (typename, C, P) {
-      F.prototype = P.prototype;
-      C.prototype = new F(typename);
-      C.uber = P.prototype;
-      C.prototype.constructor = C;
+   return function (typename, Child, Parent) {
+      F.prototype = Parent.prototype;
+      Child.prototype = new F(typename);
+      Child.uber = Parent.prototype;
+      Child.prototype.constructor = Child;
    }
 })();
 
@@ -107,8 +107,25 @@ for (var i in nodeTypes) {
 ast.declareMethod = function (name, aspect) {
    // distribute methods to prototypes by name
    for (var typename in aspect) {
+      var method = aspect[typename];
       if (typename in ast) {
-         ast[typename].prototype[name] = aspect[typename];
+         var type = ast[typename];
+         var uber = type.uber;
+         type.prototype[name] = method;
+         // permit calling "super" methods with "this.nextMethod(...)"
+         if (uber !== undefined && name in uber) {
+            type.prototype[name] = (function (name, method) {
+                return function () {
+                   var tmp = this.nextMethod;
+                   if (name in uber) {
+                      this.nextMethod = uber[name];
+                   }
+                   var ret = method.apply(this, arguments);
+                   this.nextMethod = tmp;
+                   return ret;
+                }
+            })(name, method);
+         }
       } else {
          console.log("Warning: type '" + typename + "' not in AST");
       }
@@ -142,11 +159,8 @@ PrintState.prototype = {
       this.output += '\n';
       this._indented = false;
    },
-   indent: function () { 
-      this._indent += 3; 
-   },
-   unindent: function () { 
-      this._indent -= 3; 
+   i: function (n) { 
+      this._indent += n*3; 
    }
 };
 
@@ -157,18 +171,18 @@ ast.declareMethod("printTree", {
    Node: function (out) {
       out.p(this.typename);
       if (this.isGroup()) {
-         out.indent();
+         out.i(+1);
          this.forEachChild(function (child) {
             child.printTree(out);
          });
-         out.unindent();
+         out.i(-1);
       }
    },
    OutputElement: function (out) {
       out.p("OutputElement");
-      out.indent();
+      out.i(+1);
       this.expr.printTree(out);
-      out.unindent();
+      out.i(-1);
    }
 });
 
@@ -186,57 +200,3 @@ ast.declareMethod("countNodes", {
    }
 });
 
-// prettyPrint
-
-ast.declareMethod("prettyPrint", {
-   Node: function (out) {
-      if (this.isGroup()) {
-         this.forEachChild(function (child) {
-            child.prettyPrint(out);
-         });
-      } else {
-         out.w("?" + this.typename + "?");
-      }
-   },
-   IncludeDirective: function (out) {
-      out.p("#include <" + this.file + ">");
-   },
-   UsingDirective: function (out) {
-      out.p("using namespace " + this.namespace.id + ";");
-   },
-   FunctionDef: function (out) {
-      out.p();
-      out.w(this.type + " " + this.name.id);
-      out.w("(");
-      for (var i = 0; i < this.params.length; i++) {
-         this.params[i].prettyPrint(out);
-      }
-      out.p(") {");
-      out.indent();
-      this.forEachChild(function (child) {
-         child.prettyPrint(out);
-      });
-      out.unindent();
-      out.p("}");
-   },
-   Identifier: function (out) {
-      out.w(this.id);
-   },
-   OutputStatement: function (out) {
-      out.w(this.head);
-      this.forEachChild(function (child) {
-         child.prettyPrint(out);
-      });
-      out.p(";");
-   },
-   OutputElement: function (out) {
-      out.w(" << ");
-      this.expr.prettyPrint(out);
-   },
-   StringLiteral: function (out) {
-      out.w('"' + this.lit + '"');
-   },
-   VariableReference: function (out) {
-      out.w(this.name.id);
-   },
-});
