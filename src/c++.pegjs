@@ -380,19 +380,19 @@ IfElseStatement =
 
 ConditionalBlock =
    cond:ParenthesizedCondition __ body:StatementBlock {
-	   return new ast.ConditionalBlock({ cond: cond, body: body });
+	   return new ast.ConditionalBlock({ cond: cond  }, body);
    }
 
 IfElseIfStatement =
-   "if" __ first:ConditionalBlock 
-   rest:("else" __ "if" __ ConditionalBlock)+
-	last:("else" __ StatementBlock)? {
+   "if" __ first:ConditionalBlock
+   rest:(__ "else" __ "if" __ ConditionalBlock)+
+	last:(__ "else" __ StatementBlock)? {
 	   var blocks = [first];
 		for (var i = 0; i < rest.length; i++) {
-		   blocks.push(rest[i][4]);
+		   blocks.push(rest[i][5]);
       }
 		if (last !== undefined) {
-		   blocks.push(new ast.ConditionalBlock({ body: last[2] }));
+		   blocks.push(new ast.ConditionalBlock({}, last[3]));
       }
 		return new ast.IfElseIfStatement({}, blocks);
    }

@@ -101,6 +101,27 @@ ast.declareMethod("prettyPrint", {
 		prBlock(this.elze);
 		out.p();
 	},
+	ConditionalBlock: function (out) {
+		if (this.cond !== undefined) {
+			out.w("if (");
+			this.cond.prettyPrint(out);
+			out.w(") ")
+		}
+		out.p("{");
+		out.i(+1);
+		this.nextMethod(out);
+		out.i(-1);
+		out.w("}");
+	},
+	IfElseIfStatement: function (out) {
+		var i = 0;
+		this.forEachChild(function (child) {
+			if (i != 0) out.w(" else ");
+			child.prettyPrint(out);
+			i++;
+		});
+		out.p();
+	},
    ForStatement: function (out) {
       out.w("for (");
       this.init.prettyPrint(out);
