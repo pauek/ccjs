@@ -83,6 +83,24 @@ ast.declareMethod("prettyPrint", {
       out.i(-1);
       out.p("}");
    },
+	IfElseStatement: function (out) {
+		var prBlock = function (block) {
+			out.p("{"); 
+			out.i(+1);
+			for (var i = 0; i < block.length; i++) {
+				block[i].prettyPrint(out);
+			}
+			out.i(-1); 
+			out.w("}");
+		}
+		out.w("if (");
+		this.cond.prettyPrint(out);
+		out.w(") ");
+		prBlock(this.then);
+		out.w(" else ");
+		prBlock(this.elze);
+		out.p();
+	},
    ForStatement: function (out) {
       out.w("for (");
       this.init.prettyPrint(out);

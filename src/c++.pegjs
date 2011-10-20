@@ -332,6 +332,8 @@ InputStatement =
 Statement =
    VectorDeclarationStatement /
    VariableDeclarationStatement /
+	IfElseIfStatement /
+	IfElseStatement /
    IfStatement /
    WhileStatement /
    ForStatement /
@@ -345,8 +347,13 @@ AssignmentStatement =
       return new ast.AssignmentStatement({ expr: expr });
    }
 
+ParenthesizedCondition =
+   "(" __ cond:Condition __ ")" {
+	   return cond;
+   }
+
 WhileStatement =
-   "while" __ "(" __ cond:Condition __ ")" __ body:StatementBlock {
+   "while" __ cond:ParenthesizedCondition __ body:StatementBlock {
       return new ast.WhileStatement({ cond: cond }, body);
    }
 
@@ -359,9 +366,35 @@ ForStatement =
       return new ast.ForStatement({ init: init, cond: cond, incr: incr }, body);
    }
 
+
 IfStatement =
-   "if" __ "(" __ cond:Condition __ ")" __ body:StatementBlock {
+   "if" __ cond:ParenthesizedCondition __ body:StatementBlock {
       return new ast.IfStatement({ cond: cond }, body);
+   }
+
+IfElseStatement =
+   "if" __ cond:ParenthesizedCondition __ then:StatementBlock __ 
+	"else" __ elze:StatementBlock {
+	   return new ast.IfElseStatement({ cond: cond, then: then, elze: elze });
+   }
+
+ConditionalBlock =
+   cond:ParenthesizedCondition __ body:StatementBlock {
+	   return new ast.ConditionalBlock({ cond: cond, body: body });
+   }
+
+IfElseIfStatement =
+   "if" __ first:ConditionalBlock 
+   rest:("else" __ "if" __ ConditionalBlock)+
+	last:("else" __ StatementBlock)? {
+	   var blocks = [first];
+		for (var i = 0; i < rest.length; i++) {
+		   blocks.push(rest[i][4]);
+      }
+		if (last !== undefined) {
+		   blocks.push(new ast.ConditionalBlock({ body: last[2] }));
+      }
+		return new ast.IfElseIfStatement({}, blocks);
    }
 
 StatementList =

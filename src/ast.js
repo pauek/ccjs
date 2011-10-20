@@ -107,7 +107,10 @@ var nodeTypes = [
    "InputStatement",
    "OutputStatement",
    "OutputElement",
+	"ConditionalBlock",
 	"IfStatement",
+	"IfElseStatement",
+	"IfElseIfStatement",
 	"WhileStatement",
 	"ForStatement", 
    "Block",
@@ -185,33 +188,38 @@ PrintState.prototype = {
 
 ast.declareMethod("printTree", {
    Node: function (out) {
-      out.p(this.typename);
+      out.w(this.typename);
+		out.i(+2);
+		for (var prop in this) {
+			if (this.hasOwnProperty(prop) && 
+				 prop != "__children__") {
+				var property = this[prop];
+				if (property instanceof ast.Node) {
+					out.p();
+					out.w(prop + ":");
+					out.i(+1);
+					this[prop].printTree(out);
+					out.i(-1);
+				} else if (property instanceof Array) {
+					out.p();
+					out.w(prop + ":");
+					for (var i = 0; i < property.length; i++) {
+						if (property[i] instanceof ast.Node) {
+							property[i].printTree(out);
+						}
+					}
+				}
+			}
+		}
+		out.i(-1);
       if (this.isGroup()) {
-         out.i(+1);
          this.forEachChild(function (child) {
+				out.p();
             child.printTree(out);
          });
-         out.i(-1);
       }
+		out.i(-1);
    },
-   OutputElement: function (out) {
-      out.p("OutputElement");
-      out.i(+1);
-      this.expr.printTree(out);
-      out.i(-1);
-   },
-   FunctionDef: function (out) {
-      out.p("FunctionDef");
-      out.i(+2);
-      for (var i = 0; i < this.params.length; i++) {
-         this.params[i].printTree(out);
-      }
-      out.i(-1);
-      this.forEachChild(function (child) {
-         child.printTree(out);
-      });
-      out.i(-1);
-   }
 });
 
 // nodeCount
