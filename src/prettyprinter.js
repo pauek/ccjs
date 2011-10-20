@@ -24,8 +24,10 @@ ast.declareMethod("prettyPrint", {
       this.type.prettyPrint(out);
       out.w(" " + this.name.id);
       out.w("(");
-      for (var i = 0; i < this.params.length; i++) {
-         this.params[i].prettyPrint(out);
+      if (this.params !== undefined) {
+         for (var i = 0; i < this.params.length; i++) {
+            this.params[i].prettyPrint(out);
+         }
       }
       out.p(") {");
       out.i(+1);
@@ -135,6 +137,11 @@ ast.declareMethod("prettyPrint", {
       out.i(-1);
       out.p("}");
    },
+   ReturnStatement: function (out) {
+      out.w("return ");
+      this.expr.prettyPrint(out);
+      out.p(";");
+   },
    PostfixExpression: function (out) {
       this.left.prettyPrint(out);
       out.w(this.operator);
@@ -161,6 +168,9 @@ ast.declareMethod("prettyPrint", {
    IntegerLiteral: function (out) {
       out.w('' + this.lit);
    },
+   FloatLiteral: function (out) {
+      out.w('' + this.lit);
+   },
    StringLiteral: function (out) {
       out.w('"' + this.lit + '"');
    },
@@ -173,7 +183,7 @@ ast.declareMethod("prettyPrint", {
    VariableDeclaration: function (out) {
       out.w(this.name.id);
       if (this.value !== undefined) {
-         out.w(" ");
+         out.w(" = ");
          this.value.prettyPrint(out);
       }
    },
@@ -218,10 +228,17 @@ ast.declareMethod("prettyPrint", {
       this.index.prettyPrint(out);
       out.w("]");
    },
-   FunctionCall: function (out) {
+   CallExpression: function (out) {
       out.w(this.name.id);
       this.args.prettyPrint(out);
+   },
+   CallStatement: function (out) {
+      this.call.prettyPrint(out);
       out.p(";");
    },
+   MethodCall: function (out) {
+      out.w(this.obj.id + "." + this.method.id);
+      this.args.prettyPrint(out);
+   }
 });
 

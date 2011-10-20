@@ -32,11 +32,9 @@ Identifier =
    }
 
 DecimalIntegerLiteral = 
-   "0" { 
-      return new ast.IntegerLiteral({ lit: 0 }); 
-   } / 
+   "0" { return 0; } /
    sign:"-"? head:NonZeroDigit tail:DecimalDigits? { 
-      return new ast.IntegerLiteral({ lit: parseInt(sign + head + tail) });
+      return parseInt(sign + head + tail);
    }
 
 DecimalDigits
@@ -45,10 +43,36 @@ DecimalDigits
 DecimalDigit = [0-9]
 NonZeroDigit = [1-9]
 
+SignedInteger = 
+   sign:[-+]? digits:DecimalDigits {
+      return sign + digits;
+   }
+
+FloatLiteral = 
+   before:DecimalIntegerLiteral "." after:DecimalDigits? exponent:ExponentPart? {
+      return parseFloat(before + "." + after + exponent);
+   } /
+   "." after:DecimalDigits? exponent:ExponentPart? {
+      return parseFloat("." + after + exponent);
+   } /
+   before:DecimalIntegerLiteral exponent:ExponentPart? {
+      return parseFloat(before + exponent);
+   }
+
+ExponentPart =
+   indicator:[eE] integer:SignedInteger {
+      return indicatr + integer;
+   }
+
 Literal = 
+   lit:FloatLiteral {
+      return new ast.FloatLiteral({ lit: lit });
+   } /
+   lit:DecimalIntegerLiteral {
+      return new ast.IntegerLiteral({ lit: lit }); 
+   } /
    CharLiteral /
-   StringLiteral /
-   DecimalIntegerLiteral
+   StringLiteral
 
 CharLiteral =
    "'" lit:QuotedCharacter "'" {
@@ -101,17 +125,19 @@ LineContinuation
 
 LineTerminatorSequence "end of line" = "\n" / "\r\n" / "\r"
 
-Type = name:("int" / "string" / "char" / "float" / "void") {
+Type = name:("bool" / "int" / "string" / "char" / "float" / "double" / "void") {
      return new ast.Type({ name: name });
    }
 
 PrimaryExpression =
+   CallExpression /
    Literal /
-   ReferenceExpression
+   ReferenceExpression /
+   "(" __ expr:Expression __ ")" { return expr; }
 
 ReferenceExpression =
    ArrayReference /
-   VariableReference
+   VariableReference 
 
 PostfixExpression = 
    left:ReferenceExpression _ operator:PostfixOperator {
@@ -196,7 +222,8 @@ LogicalANDExpression =
          result.push(tail[i][3]);
       }
       return new ast.LogicalANDExpression({}, result);
-   }
+   } /
+   ComparisonExpression
 
 LogicalORExpression =
    head:LogicalANDExpression tail:(__ "||" __ LogicalANDExpression)+ {
@@ -205,12 +232,10 @@ LogicalORExpression =
          result.push(tail[i][3]);
       }
       return new ast.LogicalORExpression({}, result);
-   }
+   } /
+   LogicalANDExpression
 
-Condition =
-   LogicalANDExpression /
-   LogicalORExpression /
-   ComparisonExpression
+Condition = LogicalORExpression
 
 AssignmentExpression =
    lvalue:ReferenceExpression __ 
@@ -247,7 +272,8 @@ FormalParameterList =
          result.push(tail[i][3]);
       }
       return result;
-   }
+   } /
+   "void" { return []; }
 
 VariableDeclaration =
    name:Identifier value:(__ "=" __ Expression)? {
@@ -336,6 +362,7 @@ InputStatement =
 Statement =
    VectorDeclarationStatement /
    VariableDeclarationStatement /
+   ReturnStatement /
 	IfElseIfStatement /
 	IfElseStatement /
    IfStatement /
@@ -344,7 +371,7 @@ Statement =
    InputStatement /
    AssignmentStatement /
    OutputStatement /
-   FunctionCall
+   CallStatement
 
 AssignmentStatement = 
    expr:AssignmentExpression __ ";" {
@@ -418,20 +445,38 @@ StatementBlock =
       return [stmt];
    }
 
-FunctionCall =
-   name:Identifier __ args:ActualParameterList __ ";" {
-      return new ast.FunctionCall({ name: name, args: args });
+MethodCallExpression =
+   obj:Identifier "." method:Identifier __ args:ActualParameterList {
+      return new ast.MethodCall({ obj: obj, method: method, args: args });
+   }
+
+CallExpression = 
+   name:Identifier __ args:ActualParameterList {
+      return new ast.CallExpression({ name: name, args: args });
+   }
+
+CallStatement =
+   call:(CallExpression / MethodCallExpression) __ ";" {
+      return new ast.CallStatement({ call: call });
+   }
+
+ReturnStatement =
+   "return" __ expr:Expression __ ";" {
+      return new ast.ReturnStatement({ expr: expr });
    }
 
 FunctionDef =
    type:Type _ name:Identifier __ 
    "(" __ params:FormalParameterList? __ ")" __ 
    body:StatementBlock {
-      return new ast.FunctionDef({ 
+      var result = { 
          type: type, 
          name: name, 
-         params: params 
-      }, body);
+      };
+      if (params !== '') {
+         result.params = params
+      }
+      return new ast.FunctionDef(result, body);
    }
 
 IncludeDirective "include" =

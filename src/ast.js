@@ -76,11 +76,13 @@ var nodeTypes = [
 
    "CharLiteral",
    "IntegerLiteral",
+   "FloatLiteral",
    "StringLiteral",
 
    "Identifier",
    "FunctionDef", 
-   "FunctionCall",
+   "CallStatement",
+   "MethodCall",
    "ActualParameterList",
    "FormalParameter",
    "FormalParameterList",
@@ -103,6 +105,7 @@ var nodeTypes = [
    "LogicalANDExpression",
    "LogicalORExpression",
    "ComparisonExpression",
+   "CallExpression",
 
    "AssignmentStatement",
    "InputStatement",
@@ -114,6 +117,7 @@ var nodeTypes = [
 	"IfElseIfStatement",
 	"WhileStatement",
 	"ForStatement", 
+   "ReturnStatement",
    "Block",
    "BinaryExpression",
 
@@ -122,7 +126,7 @@ for (var i in nodeTypes) {
    ast.makeNodeType(nodeTypes[i]); 
 }
 
-/* Visitors */
+/* Declare a Method on all AST Classes */
 
 ast.declareMethod = function (name, aspect) {
    // distribute methods to prototypes by name
@@ -184,34 +188,55 @@ PrintState.prototype = {
    }
 };
 
-
 // printTree
 
 ast.declareMethod("printTree", {
    Node: function (out) {
       out.w(this.typename);
-		out.i(+2);
+      var nodeprops = [], otherprops = [];
 		for (var prop in this) {
-			if (this.hasOwnProperty(prop) && 
-				 prop != "__children__") {
-				var property = this[prop];
-				if (property instanceof ast.Node) {
-					out.p();
-					out.w(prop + ":");
-					out.i(+1);
-					this[prop].printTree(out);
-					out.i(-1);
-				} else if (property instanceof Array) {
-					out.p();
-					out.w(prop + ":");
-					for (var i = 0; i < property.length; i++) {
-						if (property[i] instanceof ast.Node) {
-							property[i].printTree(out);
-						}
-					}
-				}
+			if (this.hasOwnProperty(prop) && prop != "__children__") {
+				if (this[prop] instanceof ast.Node || this[prop] instanceof Array) {
+               nodeprops.push(prop);
+				} else {
+               otherprops.push(prop);
+            }
 			}
 		}
+      // Non-Node properties
+      if (otherprops.length > 0) {
+         out.w("{ ");
+         for (var i = 0; i < otherprops.length; i++) {
+            var prop = otherprops[i];
+            if (i != 0) {
+               out.w(", ");
+            }
+            out.w(prop + ": " + this[prop]);
+         }
+         out.w(" }");
+      }
+      // Node properties
+		out.i(+2);
+      for (var i = 0; i < nodeprops.length; i++) {
+         var prop = nodeprops[i];
+         if (this[prop] instanceof Array) {
+				out.p();
+				out.w(prop + ":");
+            var property = this[prop];
+				for (var j = 0; j < property.length; j++) {
+					if (property[j] instanceof ast.Node) {
+						property[j].printTree(out);
+					}
+				}
+         } else {
+            out.p();
+			   out.w(prop + ":");
+			   out.i(+1);
+			   this[prop].printTree(out);
+			   out.i(-1);
+         }
+      }
+      // Children
 		out.i(-1);
       if (this.isGroup()) {
          this.forEachChild(function (child) {
