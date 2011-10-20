@@ -46,22 +46,26 @@ DecimalDigit = [0-9]
 NonZeroDigit = [1-9]
 
 Literal = 
+   CharLiteral /
    StringLiteral /
    DecimalIntegerLiteral
 
-StringLiteral "string" = 
-   '"' literal:StringCharacters? '"' {
-      return new ast.StringLiteral({ lit: literal });
+CharLiteral =
+   "'" lit:QuotedCharacter "'" {
+      return new ast.CharLiteral({ lit: lit });
    }
 
-StringCharacters = 
-   chars:StringCharacter+ { 
-      return chars.join(""); 
+StringLiteral "string" = 
+   '"' chars:StringCharacter+ '"' {
+      return new ast.StringLiteral({ lit: chars.join("") });
    }
+
+QuotedCharacter = 
+   !('"' / "\\" / LineTerminator) char_:SourceCharacter { return char_; } / 
+   "\\" sequence:EscapeSequence { return sequence; }
 
 StringCharacter = 
-   !('"' / "\\" / LineTerminator) char_:SourceCharacter { return char_; } / 
-   "\\" sequence:EscapeSequence { return sequence; } / 
+   QuotedCharacter /
    LineContinuation
 
 EscapeSequence = 

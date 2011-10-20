@@ -164,6 +164,9 @@ ast.declareMethod("prettyPrint", {
    StringLiteral: function (out) {
       out.w('"' + this.lit + '"');
    },
+   CharLiteral: function (out) {
+      out.w("'" + this.lit + "'");
+   },
    Type: function (out) {
       out.w(this.name);
    },

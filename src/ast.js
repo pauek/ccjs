@@ -74,6 +74,7 @@ var nodeTypes = [
    "IncludeDirective", 
 	"UsingDirective", 
 
+   "CharLiteral",
    "IntegerLiteral",
    "StringLiteral",
 
