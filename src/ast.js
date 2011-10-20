@@ -117,6 +117,8 @@ var nodeTypes = [
 	"IfElseIfStatement",
 	"WhileStatement",
 	"ForStatement", 
+   "SwitchCase",
+   "SwitchStatement",
    "ReturnStatement",
    "Block",
    "BinaryExpression",

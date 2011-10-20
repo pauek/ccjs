@@ -124,6 +124,27 @@ ast.declareMethod("prettyPrint", {
 		});
 		out.p();
 	},
+   SwitchCase: function (out) {
+      if (this.expr === undefined) {
+         out.p("default:");
+      } else {
+         out.w("case ");
+         this.expr.prettyPrint(out);
+         out.p(":");
+      }
+      out.i(+1);
+      this.forEachChild(function (child) {
+         child.prettyPrint(out);
+      });
+      out.i(-1);
+   },
+   SwitchStatement: function (out) {
+      out.w("switch (");
+      this.expr.prettyPrint(out);
+      out.p(") {");
+      this.nextMethod(out);
+      out.p("}");
+   },
    ForStatement: function (out) {
       out.w("for (");
       this.init.prettyPrint(out);

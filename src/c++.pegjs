@@ -363,6 +363,7 @@ Statement =
    VectorDeclarationStatement /
    VariableDeclarationStatement /
    ReturnStatement /
+   SwitchStatement /
 	IfElseIfStatement /
 	IfElseStatement /
    IfStatement /
@@ -426,6 +427,25 @@ IfElseIfStatement =
 		   blocks.push(new ast.ConditionalBlock({}, last[3]));
       }
 		return new ast.IfElseIfStatement({}, blocks);
+   }
+
+SwitchCase =
+   "case" __ expr:Expression __ ":" body:(__ StatementList)? {
+      return new ast.SwitchCase({ expr: expr }, body[1]);
+   } /
+   "default" __ ":" __ body:StatementList {
+      return new ast.SwitchCase({}, body);
+   }
+
+SwitchStatement =
+   "switch" __ "(" __ expr:Expression __ ")" __ "{"
+   _cases:(__ SwitchCase)+ __ 
+   "}" {
+      var cases = [];
+      for (var i = 0; i < _cases.length; i++) {
+         cases.push(_cases[i][1]);
+      }
+      return new ast.SwitchStatement({ expr: expr }, cases);
    }
 
 StatementList =
