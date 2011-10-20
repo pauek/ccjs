@@ -409,6 +409,9 @@ StatementList =
 StatementBlock =
    "{" __ lst:StatementList __ "}" {
       return lst;
+   } /
+   stmt:Statement {
+      return [stmt];
    }
 
 FunctionCall =
