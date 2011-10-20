@@ -80,7 +80,7 @@ CharLiteral =
    }
 
 StringLiteral "string" = 
-   '"' chars:StringCharacter+ '"' {
+   '"' chars:StringCharacter* '"' {
       return new ast.StringLiteral({ lit: chars.join("") });
    }
 
@@ -125,9 +125,24 @@ LineContinuation
 
 LineTerminatorSequence "end of line" = "\n" / "\r\n" / "\r"
 
-Type = name:("bool" / "int" / "string" / "char" / "float" / "double" / "void") {
-     return new ast.Type({ name: name });
+BasicType = "bool" / "int" / "string" / "char" / "float" / "double" / "void"
+
+Type = 
+   konst:("const" __)? name:(BasicType / id:Identifier { return id.id; }) {
+     return new ast.Type({ name: name, konst: (konst !== "")});
    }
+
+StructDeclaration =
+  "struct" __ name:Identifier __ "{" __
+     first:VariableDeclarationStatement 
+     rest:(__ VariableDeclarationStatement)* __
+  "}" __ ";" {
+     var fields = [first];
+     for (var i = 0; i < rest.length; i++) {
+        fields.push(rest[i][1]);
+     }
+     return new ast.StructDeclaration({ name: name }, fields);
+  }
 
 PrimaryExpression =
    CallExpression /
@@ -136,6 +151,7 @@ PrimaryExpression =
    "(" __ expr:Expression __ ")" { return expr; }
 
 ReferenceExpression =
+   MemberAccess /
    ArrayReference /
    VariableReference 
 
@@ -152,7 +168,7 @@ PostfixOperator = "++" / "--"
 
 UnaryExpression = 
   PostfixExpression / 
-  operator:UnaryOperator __ expression:UnaryExpression {
+  operator:UnaryOperator __ right:UnaryExpression {
      return new ast.UnaryExpression({ 
         operator: operator, 
         right: right 
@@ -253,16 +269,29 @@ Expression =
    AssignmentExpression
 
 VariableReference =
-   name:Identifier { return new ast.VariableReference({ name: name }); }
+   name:Identifier { 
+      return new ast.VariableReference({ name: name }); 
+   }
 
 ArrayReference =
    name:Identifier _ "[" _ index:Expression _ "]" {
       return new ast.ArrayReference({ name: name, index: index });
    }
 
+SingleAccess = VariableReference / ArrayReference
+
+MemberAccess =
+   first:SingleAccess rest:(__ "." __ SingleAccess)+ {
+      var result = [first];
+      for (var i = 0; i < rest.length; i++) {
+         result.push(rest[i][3]);
+      }
+      return new ast.MemberAccess({}, result);
+   }
+
 FormalParameter =
-   type:Type _ name:Identifier {
-      return new ast.FormalParameter({ type: type, name: name });
+   type:Type ref:(__ "&")?__ name:Identifier {
+      return new ast.FormalParameter({ type: type, name: name, ref: (ref !== '') });
    }
 
 FormalParameterList =
@@ -275,7 +304,7 @@ FormalParameterList =
    } /
    "void" { return []; }
 
-VariableDeclaration =
+SingleVariableDeclaration =
    name:Identifier value:(__ "=" __ Expression)? {
       var result = { name: name };
       if (typeof value[3] != 'undefined') {
@@ -283,6 +312,29 @@ VariableDeclaration =
       }
       return new ast.VariableDeclaration(result);
    }
+
+ArrayInitialization = 
+   "{" __ first:Expression rest:(__ "," __ Expression)* __ "}" {
+      var result = [first];
+      for (var i = 0; i < rest.length; i++) {
+         result.push(rest[i][3]);
+      }
+      return result;
+   }
+
+ArrayDeclaration =
+   name:Identifier __ "[" __ size:Expression __ "]"
+   init:(__ "=" __ ArrayInitialization)? {
+      var result = { name: name, size: size };
+      if (init != "") {
+         result.init = init[3];
+      }
+      return new ast.ArrayDeclaration(result);
+   }
+
+VariableDeclaration =
+   ArrayDeclaration /
+   SingleVariableDeclaration
 
 VariableDeclarationList =
    head:VariableDeclaration tail:(__ "," __ VariableDeclaration)* {
@@ -314,12 +366,21 @@ ActualParameterList =
   }
 
 VectorDeclaration =
+   VectorCopyConstructor /
+   VectorConstructor 
+
+VectorCopyConstructor = 
+   name:Identifier __ "=" __ init:Expression {
+      return new ast.VectorCopyConstructor({ name: name, init: init });
+   }
+
+VectorConstructor =
    name:Identifier params:(__ ActualParameterList)? {
       var result = { name: name };
       if (params[1] !== undefined) {
          result.params = params[1];
       }
-      return new ast.VectorDeclaration(result);
+      return new ast.VectorConstructor(result);
    }
 
 VectorDeclarationList =
@@ -332,8 +393,12 @@ VectorDeclarationList =
    }                     
 
 VectorType =
-   "vector" _ "<" _ subtype:Type _ ">" {
-      return new ast.VectorType({ subtype: subtype });
+   konst:("const" __)? "vector" _ "<" _ subtype:Type _ ">" ref:(__ "&")? {
+      return new ast.VectorType({ 
+         subtype: subtype, 
+         konst: (konst !== ""), 
+         ref: (ref !== "") 
+      });
    }
 
 VectorDeclarationStatement =
@@ -370,9 +435,9 @@ Statement =
    WhileStatement /
    ForStatement /
    InputStatement /
+   CallStatement /
    AssignmentStatement /
-   OutputStatement /
-   CallStatement
+   OutputStatement
 
 AssignmentStatement = 
    expr:AssignmentExpression __ ";" {
@@ -391,11 +456,14 @@ WhileStatement =
 
 ForStatement =
    "for" __ "(" __ 
-   init:AssignmentExpression __ ";" __ 
+   init:(AssignmentExpression __)? ";" __ 
    cond:Condition __ ";" __ 
-   incr:AssignmentExpression __ ")" __ 
+   incr:(AssignmentExpression __)? ")" __ 
    body:StatementBlock {
-      return new ast.ForStatement({ init: init, cond: cond, incr: incr }, body);
+      var result = { cond: cond };
+      if (init !== "") result.init = init[0];
+      if (incr !== "") result.incr = incr[0];
+      return new ast.ForStatement(result, body);
    }
 
 
@@ -458,8 +526,8 @@ StatementList =
    }
 
 StatementBlock =
-   "{" __ lst:StatementList __ "}" {
-      return lst;
+   "{" lst:(__ lst:StatementList)? __ "}" {
+      return (lst !== "" ? lst[1] : []);
    } /
    stmt:Statement {
       return [stmt];
@@ -485,7 +553,7 @@ ReturnStatement =
       return new ast.ReturnStatement({ expr: expr });
    }
 
-FunctionDef =
+FunctionDefinition =
    type:Type _ name:Identifier __ 
    "(" __ params:FormalParameterList? __ ")" __ 
    body:StatementBlock {
@@ -496,7 +564,7 @@ FunctionDef =
       if (params !== '') {
          result.params = params
       }
-      return new ast.FunctionDef(result, body);
+      return new ast.FunctionDefinition(result, body);
    }
 
 IncludeDirective "include" =
@@ -512,7 +580,9 @@ UsingDirective "using" =
 ProgramPart =
   IncludeDirective /
   UsingDirective /
-  FunctionDef /
+  FunctionDefinition /
+  StructDeclaration /
+  VariableDeclarationStatement /
   Comment
 
 Program = 

@@ -80,7 +80,7 @@ var nodeTypes = [
    "StringLiteral",
 
    "Identifier",
-   "FunctionDef", 
+   "FunctionDefinition", 
    "CallStatement",
    "MethodCall",
    "ActualParameterList",
@@ -90,13 +90,17 @@ var nodeTypes = [
 
    "VariableReference",
    "ArrayReference",
+   "MemberAccess",
 
    "Type", 
    "VectorType",
 
+   "StructDeclaration",
+   "ArrayDeclaration",
    "VariableDeclaration",
    "VariableDeclarationStatement",
-   "VectorDeclaration",
+   "VectorConstructor",
+   "VectorCopyConstructor",
    "VectorDeclarationStatement",
 
    "PostfixExpression",

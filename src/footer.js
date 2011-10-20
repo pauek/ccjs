@@ -45,14 +45,13 @@ fs.readFile(opts.ccfile, 'utf-8', function (err, data) {
       tree.prettyPrint(P);
       console.log(P.output);
    } else if ('parsetest' in opts) {
-      process.stdout.write(opts.ccfile);
-      var tree;
       try {
-         tree = cc.parse(data);
-         process.stdout.write(": parse ok\n");
+         cc.parse(data);
+         process.stdout.write("ok   ");
       } catch (e) {
-         process.stdout.write(": parse failed\n");
+         process.stdout.write("FAIL ");
       }
+      process.stdout.write(opts.ccfile + "\n");
    } else {
       var tree = cc.parse(data);
    }

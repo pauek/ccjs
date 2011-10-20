@@ -19,13 +19,14 @@ ast.declareMethod("prettyPrint", {
    UsingDirective: function (out) {
       out.p("using namespace " + this.namespace.id + ";");
    },
-   FunctionDef: function (out) {
+   FunctionDefinition: function (out) {
       out.p();
       this.type.prettyPrint(out);
       out.w(" " + this.name.id);
       out.w("(");
       if (this.params !== undefined) {
          for (var i = 0; i < this.params.length; i++) {
+            if (i != 0) out.w(", ");
             this.params[i].prettyPrint(out);
          }
       }
@@ -37,6 +38,7 @@ ast.declareMethod("prettyPrint", {
    },
    FormalParameter: function (out) {
       this.type.prettyPrint(out);
+      if (this.ref) out.w("&");
       out.w(" " + this.name.id);
    },
    Identifier: function (out) {
@@ -66,6 +68,10 @@ ast.declareMethod("prettyPrint", {
       this.lvalue.prettyPrint(out);
       out.w(" " + this.operator + " ");
       this.rvalue.prettyPrint(out);
+   },
+   UnaryExpression: function (out) {
+      out.w(this.operator);
+      this.right.prettyPrint(out);
    },
    WhileStatement: function (out) {
       out.w("while (");
@@ -147,11 +153,15 @@ ast.declareMethod("prettyPrint", {
    },
    ForStatement: function (out) {
       out.w("for (");
-      this.init.prettyPrint(out);
+      if (this.init !== undefined) {
+         this.init.prettyPrint(out);
+      }
       out.w("; ");
       this.cond.prettyPrint(out);
       out.w("; ");
-      this.incr.prettyPrint(out);
+      if (this.incr !== undefined) {
+         this.incr.prettyPrint(out);
+      }
       out.p(") {");
       out.i(+1);
       this.nextMethod(out);
@@ -168,9 +178,11 @@ ast.declareMethod("prettyPrint", {
       out.w(this.operator);
    },
    BinaryExpression: function (out) {
+      out.w("(");
       this.left.prettyPrint(out);
       out.w(" " + this.operator + " ");
       this.right.prettyPrint(out);
+      out.w(")");
    },
    ActualParameterList: function (out) {
       out.w("(");
@@ -199,7 +211,35 @@ ast.declareMethod("prettyPrint", {
       out.w("'" + this.lit + "'");
    },
    Type: function (out) {
+      if (this.konst) {
+         out.w("const ");
+      }
       out.w(this.name);
+   },
+   StructDeclaration: function (out) {
+      out.p();
+      out.p("struct " + this.name.id + " {");
+      out.i(+1);
+      this.nextMethod(out);
+      out.i(-1);
+      out.p("};");
+      
+   },
+   ArrayDeclaration: function (out) {
+      out.w(this.name.id);
+      out.w("[");
+      this.size.prettyPrint(out);
+      out.w("]");
+      if (this.init !== undefined) {
+         out.w(" = { ");
+         for (var i = 0; i < this.init.length; i++) {
+            if (i != 0) {
+               out.w(", ");
+            }
+            this.init[i].prettyPrint(out);
+         }
+         out.w(" }");
+      }
    },
    VariableDeclaration: function (out) {
       out.w(this.name.id);
@@ -219,15 +259,29 @@ ast.declareMethod("prettyPrint", {
       });
       out.p(";");
    },
+   MemberAccess: function (out) {
+      var i = 0;
+      this.forEachChild(function (child) {
+         if (i != 0) out.w(".");
+         child.prettyPrint(out);
+         i++;
+      });
+   },
    VariableReference: function (out) {
       out.w(this.name.id);
    },
    VectorType: function (out) {
+      if (this.konst) out.w("const ");
       out.w('vector<');
       this.subtype.prettyPrint(out);
       out.w('>');
+      if (this.ref) out.w("&");
    },
-   VectorDeclaration: function (out) {
+   VectorCopyConstructor: function (out) {
+      out.w(this.name.id + " = ");
+      this.init.prettyPrint(out);
+   },
+   VectorConstructor: function (out) {
       out.w(this.name.id);
       if (this.params !== undefined) {
          this.params.prettyPrint(out);
