@@ -97,7 +97,7 @@ LineContinuation
 
 LineTerminatorSequence "end of line" = "\n" / "\r\n" / "\r"
 
-Type = name:("int" / "char" / "float" / "void") {
+Type = name:("int" / "string" / "char" / "float" / "void") {
      return new ast.Type({ name: name });
    }
 
