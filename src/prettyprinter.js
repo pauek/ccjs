@@ -216,6 +216,13 @@ ast.declareMethod("prettyPrint", {
       }
       out.w(this.name);
    },
+   ArrayTypedefDeclaration: function (out) {
+      out.w("typedef ");
+      this.type.prettyPrint(out);
+      out.w(" " + this.name.id + "[");
+      this.size.prettyPrint(out);
+      out.p("];");
+   },
    StructDeclaration: function (out) {
       out.p();
       out.p("struct " + this.name.id + " {");

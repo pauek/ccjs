@@ -95,6 +95,7 @@ var nodeTypes = [
    "Type", 
    "VectorType",
 
+   "ArrayTypedefDeclaration",
    "StructDeclaration",
    "ArrayDeclaration",
    "VariableDeclaration",

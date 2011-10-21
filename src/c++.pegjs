@@ -132,19 +132,29 @@ Type =
      return new ast.Type({ name: name, konst: (konst !== "")});
    }
 
+ArrayTypedefDeclaration = 
+   "typedef" __ type:Type __ decl:ArrayDeclarationNoInit ";" {
+      return new ast.ArrayTypedefDeclaration({ 
+         type: type, 
+         name: decl.name, 
+         size: decl.size 
+      });
+   }
+
 StructDeclaration =
-  "struct" __ name:Identifier __ "{" __
-     first:VariableDeclarationStatement 
-     rest:(__ VariableDeclarationStatement)* __
-  "}" __ ";" {
-     var fields = [first];
-     for (var i = 0; i < rest.length; i++) {
-        fields.push(rest[i][1]);
-     }
-     return new ast.StructDeclaration({ name: name }, fields);
-  }
+   "struct" __ name:Identifier __ "{" __
+      first:VariableDeclarationStatement 
+      rest:(__ VariableDeclarationStatement)* __
+   "}" __ ";" {
+      var fields = [first];
+      for (var i = 0; i < rest.length; i++) {
+         fields.push(rest[i][1]);
+      }
+      return new ast.StructDeclaration({ name: name }, fields);
+   }
 
 PrimaryExpression =
+   MethodCallExpression /
    CallExpression /
    Literal /
    ReferenceExpression /
@@ -278,7 +288,7 @@ ArrayReference =
       return new ast.ArrayReference({ name: name, index: index });
    }
 
-SingleAccess = VariableReference / ArrayReference
+SingleAccess = ArrayReference / VariableReference
 
 MemberAccess =
    first:SingleAccess rest:(__ "." __ SingleAccess)+ {
@@ -322,10 +332,14 @@ ArrayInitialization =
       return result;
    }
 
+ArrayDeclarationNoInit = 
+   name:Identifier __ "[" __ size:Expression __ "]" {
+      return { name: name, size: size };
+   }
+
 ArrayDeclaration =
-   name:Identifier __ "[" __ size:Expression __ "]"
-   init:(__ "=" __ ArrayInitialization)? {
-      var result = { name: name, size: size };
+   decl:ArrayDeclarationNoInit init:(__ "=" __ ArrayInitialization)? {
+      var result = { name: decl.name, size: decl.size };
       if (init != "") {
          result.init = init[3];
       }
@@ -424,9 +438,12 @@ InputStatement =
       return new ast.InputStatement({ head: "cin" }, elements);
    }
 
-Statement =
+DeclarationStatement =
    VectorDeclarationStatement /
-   VariableDeclarationStatement /
+   VariableDeclarationStatement
+
+Statement =
+   DeclarationStatement /
    ReturnStatement /
    SwitchStatement /
 	IfElseIfStatement /
@@ -582,6 +599,7 @@ ProgramPart =
   UsingDirective /
   FunctionDefinition /
   StructDeclaration /
+  ArrayTypedefDeclaration /
   VariableDeclarationStatement /
   Comment
 
