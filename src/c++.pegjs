@@ -158,6 +158,7 @@ PrimaryExpression =
    CallExpression /
    Literal /
    ReferenceExpression /
+   ConditionalExpression /
    "(" __ expr:Expression __ ")" { return expr; }
 
 ReferenceExpression =
@@ -508,6 +509,19 @@ IfElseStatement =
    "if" __ cond:ParenthesizedCondition __ then:StatementBlock __ 
 	"else" __ elze:StatementBlock {
 	   return new ast.IfElseStatement({ cond: cond, then: then, elze: elze });
+   }
+
+ConditionalExpression =
+   "(" __ 
+   cond:Condition __ "?" __ 
+   then:Expression __ ":" __ 
+   elze:Expression __ 
+   ")" {
+      return new ast.ConditionalExpression({ 
+         cond: cond, 
+         then: then, 
+         elze:elze 
+      });
    }
 
 ConditionalBlock =

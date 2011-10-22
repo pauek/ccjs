@@ -126,6 +126,7 @@ var nodeTypes = [
 	"IfStatement",
 	"IfElseStatement",
 	"IfElseIfStatement",
+   "ConditionalExpression",
 	"WhileStatement",
 	"ForStatement", 
    "SwitchCase",
