@@ -53,7 +53,11 @@ fs.readFile(opts.ccfile, 'utf-8', function (err, data) {
       }
       process.stdout.write(opts.ccfile + "\n");
    } else {
-      var tree = cc.parse(data);
+      try {
+         var tree = cc.parse(data);
+      }  catch (e) {
+         console.log(e.line + ":" + e.column + ":" + e.message);
+      }
    }
 });
 

@@ -79,7 +79,7 @@ CharLiteral =
       return new ast.CharLiteral({ lit: lit });
    }
 
-StringLiteral "string" = 
+StringLiteral = 
    '"' chars:StringCharacter* '"' {
       return new ast.StringLiteral({ lit: chars.join("") });
    }
@@ -123,7 +123,7 @@ EscapeCharacter =
 LineContinuation
   = "\\" sequence:LineTerminatorSequence { return sequence; }
 
-LineTerminatorSequence "end of line" = "\n" / "\r\n" / "\r"
+LineTerminatorSequence = "\n" / "\r\n" / "\r"
 
 BasicType = "bool" / "int" / "string" / "char" / "float" / "double" / "void"
 
@@ -261,7 +261,9 @@ LogicalORExpression =
    } /
    LogicalANDExpression
 
-Condition = LogicalORExpression
+Condition = 
+   InputExpression /
+   LogicalORExpression
 
 AssignmentExpression =
    lvalue:ReferenceExpression __ 
@@ -320,7 +322,7 @@ SingleVariableDeclaration =
       if (typeof value[3] != 'undefined') {
          result.value = value[3];
       }
-      return new ast.VariableDeclaration(result);
+      return new ast.SingleVariableDeclaration(result);
    }
 
 ArrayInitialization = 
@@ -346,12 +348,12 @@ ArrayDeclaration =
       return new ast.ArrayDeclaration(result);
    }
 
-VariableDeclaration =
+OneVariableDeclaration =
    ArrayDeclaration /
    SingleVariableDeclaration
 
 VariableDeclarationList =
-   head:VariableDeclaration tail:(__ "," __ VariableDeclaration)* {
+   head:OneVariableDeclaration tail:(__ "," __ OneVariableDeclaration)* {
       var result = [head];
       for (var i = 0; i < tail.length; i++) {
          result.push(tail[i][3]);
@@ -359,11 +361,15 @@ VariableDeclarationList =
       return result;
    }
 
-VariableDeclarationStatement =
-   type:Type __ lst:VariableDeclarationList __ ";" {
-      return new ast.VariableDeclarationStatement({ type: type }, lst);
+VariableDeclaration =
+   type:Type __ lst:VariableDeclarationList {
+      return new ast.VariableDeclaration({ type: type }, lst);
    }
 
+VariableDeclarationStatement =
+   decl:VariableDeclaration __ ";" {
+      return new ast.VariableDeclarationStatement({ decl: decl });
+   }
 
 ExpressionList = 
   head:Expression tail:(__ "," __ Expression)* {
@@ -429,13 +435,18 @@ OutputStatement =
       return new ast.OutputStatement({ head: "cout" }, elements);
    }
 
-InputStatement =
-   "cin" elems:(__ ">>" __ ReferenceExpression)* __ ";" {
+InputExpression =
+   "cin" elems:(__ ">>" __ ReferenceExpression)+ {
       var elements = [];
       for (var i = 0; i < elems.length; i++) {
          elements.push(elems[i][3]);
       }
-      return new ast.InputStatement({ head: "cin" }, elements);
+      return new ast.InputExpression({ head: "cin" }, elements);
+   }
+
+InputStatement =
+   expr:InputExpression __ ";" {
+      return new ast.InputStatement({ head: expr.head }, expr.children());
    }
 
 DeclarationStatement =
@@ -471,9 +482,13 @@ WhileStatement =
       return new ast.WhileStatement({ cond: cond }, body);
    }
 
+ForInitialization =
+   VariableDeclaration /
+   AssignmentExpression
+
 ForStatement =
    "for" __ "(" __ 
-   init:(AssignmentExpression __)? ";" __ 
+   init:(ForInitialization __)? ";" __ 
    cond:Condition __ ";" __ 
    incr:(AssignmentExpression __)? ")" __ 
    body:StatementBlock {
@@ -584,15 +599,24 @@ FunctionDefinition =
       return new ast.FunctionDefinition(result, body);
    }
 
-IncludeDirective "include" =
+IncludeDirective =
   "#include" _ [<"] file:[a-z]* [>"] {
      return new ast.IncludeDirective({ file: file.join('') });
   }
 
-UsingDirective "using" =
-  "using" __ "namespace" __ ns:Identifier __ ";" {
-    return new ast.UsingDirective({ namespace: ns });
-  }
+UsingDirective =
+  UsingSymbolDirective /
+  UsingNamespaceDirective
+
+UsingSymbolDirective =
+   "using" __ ns:Identifier _ "::" _ sym:Identifier __ ";" {
+      return new ast.UsingDirective({ namespace: ns, symbol: sym });
+   }
+
+UsingNamespaceDirective =
+   "using" __ "namespace" __ ns:Identifier __ ";" {
+      return new ast.UsingDirective({ namespace: ns });
+   }
 
 ProgramPart =
   IncludeDirective /

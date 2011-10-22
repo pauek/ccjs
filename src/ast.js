@@ -25,6 +25,9 @@ ast.Node.prototype = {
    isGroup: function () {
       return this.hasOwnProperty('__children__');
    },
+   children: function () {
+      return this.__children__;
+   },
    forEachChild: function (fn) {
       for (var i in this.__children__) {
          fn(this.__children__[i]);
@@ -55,6 +58,7 @@ ast.Node.prototype = {
 
 ast.makeNodeType = function (typename) {
    var NewType = function (obj, children) {
+      // console.log(typename);
       for (var prop in obj) {
          if (obj.hasOwnProperty(prop)) {
 	         this[prop] = obj[prop];
@@ -98,6 +102,7 @@ var nodeTypes = [
    "ArrayTypedefDeclaration",
    "StructDeclaration",
    "ArrayDeclaration",
+   "SingleVariableDeclaration",
    "VariableDeclaration",
    "VariableDeclarationStatement",
    "VectorConstructor",
@@ -113,6 +118,7 @@ var nodeTypes = [
    "CallExpression",
 
    "AssignmentStatement",
+   "InputExpression",
    "InputStatement",
    "OutputStatement",
    "OutputElement",

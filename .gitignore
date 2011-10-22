@@ -4,3 +4,4 @@ cc.js
 cc.min.js
 cc.pretty.js
 src/parser.js
+parsetest
