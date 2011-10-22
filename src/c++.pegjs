@@ -128,8 +128,18 @@ LineTerminatorSequence = "\n" / "\r\n" / "\r"
 BasicType = "bool" / "int" / "string" / "char" / "float" / "double" / "void"
 
 Type = 
-   konst:("const" __)? name:(BasicType / id:Identifier { return id.id; }) {
-     return new ast.Type({ name: name, konst: (konst !== "")});
+   konst:("const" __)? name:(
+      BasicType / 
+      IteratorType /
+      ContainerType /
+      id:Identifier { return id.id; }
+   ) 
+   ref:(__ "&")? {
+     return new ast.Type({ 
+        name: name, 
+        konst: (konst !== ""),
+        ref: (ref !== ""),
+     });
    }
 
 ArrayTypedefDeclaration = 
@@ -162,8 +172,7 @@ PrimaryExpression =
    "(" __ expr:Expression __ ")" { return expr; }
 
 ReferenceExpression =
-   MemberAccess /
-   ArrayReference /
+   AccessExpression /
    VariableReference 
 
 PostfixExpression = 
@@ -186,8 +195,7 @@ UnaryExpression =
      });
   }
 
-UnaryOperator = "++" / "--" / "+" / "-" / "~" / "!"
-
+UnaryOperator = "++" / "--" / "+" / "-" / "~" / "!" / "*"
 
 MultiplicativeOperator
   = operator:("*" / "/" / "%") !"=" { return operator; }
@@ -238,9 +246,10 @@ ComparisonExpression =
          right: right 
       });
    } /
+   InputExpression /
    AdditiveExpression
 
-AssignmentOperator = "+=" / "*=" / "/=" / "-=" / "=" 
+AssignmentOperator = "+=" / "*=" / "/=" / "-=" / "%=" / "=" 
 
 LogicalANDExpression =
    head:ComparisonExpression tail:(__ "&&" __ ComparisonExpression)+ {
@@ -263,7 +272,6 @@ LogicalORExpression =
    LogicalANDExpression
 
 Condition = 
-   InputExpression /
    LogicalORExpression
 
 AssignmentExpression =
@@ -278,7 +286,17 @@ AssignmentExpression =
    } /
    Condition
 
-Expression = 
+CommaExpression =
+   first:AssignmentExpression rest:(__ "," __ AssignmentExpression) {
+      var result = [first];
+      for (var i in rest) {
+         result.push(rest[i][3]);
+      }
+      return new ast.CommaExpression({}, result);
+   }
+
+Expression =
+   CommaExpression / 
    AssignmentExpression
 
 VariableReference =
@@ -286,24 +304,28 @@ VariableReference =
       return new ast.VariableReference({ name: name }); 
    }
 
-ArrayReference =
-   name:Identifier _ "[" _ index:Expression _ "]" {
-      return new ast.ArrayReference({ name: name, index: index });
+SingleAccess = 
+   "." __ member:Identifier {
+      return new ast.MemberAccess({ member: member });
+   } /
+   "[" __ index:Expression __ "]" {
+      return new ast.ArrayAccess({ index: index });
+   } /
+   "->" __ member:Identifier {
+      return new ast.PointerAccess({ member: member });
    }
 
-SingleAccess = ArrayReference / VariableReference
-
-MemberAccess =
-   first:SingleAccess rest:(__ "." __ SingleAccess)+ {
-      var result = [first];
-      for (var i = 0; i < rest.length; i++) {
-         result.push(rest[i][3]);
+AccessExpression =
+   head:Identifier rest:(__ SingleAccess)+ {
+      var accesses = [];
+      for (var i in rest) {
+         accesses.push(rest[i][1]);
       }
-      return new ast.MemberAccess({}, result);
+      return new ast.AccessExpression({ head: head }, accesses);
    }
 
 FormalParameter =
-   type:Type ref:(__ "&")?__ name:Identifier {
+   type:Type ref:(__ "&")? __ name:Identifier {
       return new ast.FormalParameter({ type: type, name: name, ref: (ref !== '') });
    }
 
@@ -336,8 +358,8 @@ ArrayInitialization =
    }
 
 ArrayDeclarationNoInit = 
-   name:Identifier __ "[" __ size:Expression __ "]" {
-      return { name: name, size: size };
+   name:Identifier __ "[" __ size:(Expression __)? "]" {
+      return { name: name, size: (size !== "" ? size : null) };
    }
 
 ArrayDeclaration =
@@ -349,8 +371,14 @@ ArrayDeclaration =
       return new ast.ArrayDeclaration(result);
    }
 
+ConstructorCall =
+   name:Identifier __ args:ActualParameterList {
+      return new ast.ConstructorCall({ name: name, args: args });
+   }
+
 OneVariableDeclaration =
    ArrayDeclaration /
+   ConstructorCall /
    SingleVariableDeclaration
 
 VariableDeclarationList =
@@ -386,72 +414,62 @@ ActualParameterList =
      return new ast.ActualParameterList({}, lst);
   }
 
-VectorDeclaration =
-   VectorCopyConstructor /
-   VectorConstructor 
-
-VectorCopyConstructor = 
-   name:Identifier __ "=" __ init:Expression {
-      return new ast.VectorCopyConstructor({ name: name, init: init });
-   }
-
-VectorConstructor =
-   name:Identifier params:(__ ActualParameterList)? {
-      var result = { name: name };
-      if (params[1] !== undefined) {
-         result.params = params[1];
-      }
-      return new ast.VectorConstructor(result);
-   }
-
-VectorDeclarationList =
-   head:VectorDeclaration tail:(__ "," __ VectorDeclaration)* {
-      var result = [head];
-      for (var i = 0; i < tail.length; i++) {
-         result.push(tail[i][3]);
-      }
-      return result;
-   }                     
-
 VectorType =
-   konst:("const" __)? "vector" _ "<" _ subtype:Type _ ">" ref:(__ "&")? {
+   ("std" __ "::" __)? 
+   "vector" __ "<" __ subtype:Type __ ">" {
       return new ast.VectorType({ 
          subtype: subtype, 
-         konst: (konst !== ""), 
-         ref: (ref !== "") 
       });
    }
 
-VectorDeclarationStatement =
-   type:VectorType __ lst:VectorDeclarationList __ ";" {
-      return new ast.VectorDeclarationStatement({ type: type }, lst);
+MapType =
+   ("std" __ "::" __)? 
+   "map" __ "<" __ key:Type __ "," __ value:Type __ ">" {
+      return new ast.MapType({
+         key: key,
+         value: value,
+      });
+   }
+
+
+ContainerType = 
+   VectorType /
+   MapType
+
+IteratorType =
+   container:ContainerType __ "::" __ 
+   konst:("const_")? reverse:("reverse_")? "iterator" {
+      return new ast.IteratorType({ 
+         container: container,
+         konst: (konst !== ""),
+         reverse: (reverse !== ""),
+      });
    }
 
 OutputStatement =
-   "cout" elems:(__ "<<" __ Expression)* __ ";" {
+   head:Identifier elems:(__ "<<" __ Expression)* __ ";" {
       var elements = [];
       for (var i = 0; i < elems.length; i++) {
          elements.push(elems[i][3]);
       }
-      return new ast.OutputStatement({ head: "cout" }, elements);
+      return new ast.OutputStatement({ head: head }, elements);
    }
 
 InputExpression =
-   "cin" elems:(__ ">>" __ ReferenceExpression)+ {
+   head:Identifier elems:(__ ">>" __ ReferenceExpression)+ {
       var elements = [];
       for (var i = 0; i < elems.length; i++) {
          elements.push(elems[i][3]);
       }
-      return new ast.InputExpression({ head: "cin" }, elements);
+      return new ast.InputExpression({ head: head }, elements);
    }
 
-InputStatement =
-   expr:InputExpression __ ";" {
-      return new ast.InputStatement({ head: expr.head }, expr.children());
+ExpressionStatement =
+   expr:Expression __ ";" {
+      return new ast.ExpressionStatement({ head: expr.head }, expr.children());
    }
 
 DeclarationStatement =
-   VectorDeclarationStatement /
    VariableDeclarationStatement
 
 Statement =
@@ -463,9 +481,9 @@ Statement =
    IfStatement /
    WhileStatement /
    ForStatement /
-   InputStatement /
    CallStatement /
    AssignmentStatement /
+   ExpressionStatement /
    OutputStatement
 
 AssignmentStatement = 
@@ -491,7 +509,7 @@ ForStatement =
    "for" __ "(" __ 
    init:(ForInitialization __)? ";" __ 
    cond:Condition __ ";" __ 
-   incr:(AssignmentExpression __)? ")" __ 
+   incr:(Expression __)? ")" __ 
    body:StatementBlock {
       var result = { cond: cond };
       if (init !== "") result.init = init[0];
@@ -511,17 +529,20 @@ IfElseStatement =
 	   return new ast.IfElseStatement({ cond: cond, then: then, elze: elze });
    }
 
-ConditionalExpression =
-   "(" __ 
+NoParensConditionalExpression =
    cond:Condition __ "?" __ 
    then:Expression __ ":" __ 
-   elze:Expression __ 
-   ")" {
+   elze:Expression {
       return new ast.ConditionalExpression({ 
          cond: cond, 
          then: then, 
-         elze:elze 
+         elze: elze 
       });
+   }
+
+ConditionalExpression =
+   "(" __ expr:NoParensConditionalExpression __ ")" {
+     return expr;
    }
 
 ConditionalBlock =
@@ -595,17 +616,19 @@ CallStatement =
    }
 
 ReturnStatement =
-   "return" __ expr:Expression __ ";" {
+   "return" __ expr:(NoParensConditionalExpression / Expression) __ ";" {
       return new ast.ReturnStatement({ expr: expr });
    }
 
 FunctionDefinition =
+   inline:("inline" __)?
    type:Type _ name:Identifier __ 
    "(" __ params:FormalParameterList? __ ")" __ 
    body:StatementBlock {
       var result = { 
          type: type, 
          name: name, 
+         inline: (inline !== ""),
       };
       if (params !== '') {
          result.params = params

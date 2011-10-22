@@ -94,14 +94,20 @@ var nodeTypes = [
 
    "VariableReference",
    "ArrayReference",
+   "AccessExpression",
    "MemberAccess",
+   "ArrayAccess",
+   "PointerAccess",
 
    "Type", 
    "VectorType",
+   "MapType",
+   "IteratorType",
 
    "ArrayTypedefDeclaration",
    "StructDeclaration",
    "ArrayDeclaration",
+   "ConstructorCall",
    "SingleVariableDeclaration",
    "VariableDeclaration",
    "VariableDeclarationStatement",
@@ -109,6 +115,7 @@ var nodeTypes = [
    "VectorCopyConstructor",
    "VectorDeclarationStatement",
 
+   "CommaExpression",
    "PostfixExpression",
    "UnaryExpression",
    "AssignmentExpression",
@@ -119,7 +126,7 @@ var nodeTypes = [
 
    "AssignmentStatement",
    "InputExpression",
-   "InputStatement",
+   "ExpressionStatement",
    "OutputStatement",
    "OutputElement",
 	"ConditionalBlock",
