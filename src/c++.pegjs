@@ -26,6 +26,12 @@ Comment =
    MultiLineComment /
    SingleLineComment
 
+IdentifierPart = 
+   IdentifierStart
+
+IdentifierStart = 
+   [_A-Za-z]
+
 Identifier = 
    name:([_A-Za-z] [_A-Za-z0-9]*) {
       return new ast.Identifier({ id: name[0] + name[1].join('') });
@@ -125,7 +131,9 @@ LineContinuation
 
 LineTerminatorSequence = "\n" / "\r\n" / "\r"
 
-BasicType = "bool" / "int" / "string" / "char" / "float" / "double" / "void"
+BasicTypeName = "bool" / "int" / "string" / "char" / "float" / "double" / "void"
+
+BasicType = BasicTypeName !IdentifierPart
 
 Type = 
    konst:("const" __)? name:(
