@@ -365,9 +365,13 @@ ArrayInitialization =
       return result;
    }
 
-ArrayDeclarationNoInit = 
-   name:Identifier __ "[" __ size:(Expression __)? "]" {
-      return { name: name, size: (size !== "" ? size : null) };
+ArrayDeclarationNoInit =
+   name:Identifier __ "[" __ size1:(Expression __)? "]" __ othersizes:("[" __ Expression __ "]")* {
+      var sizes = (size1 !== "" ? size1 : null);
+      for (var i in othersizes) {
+         sizes.push(othersizes[i][2]);
+      }
+      return { name: name, sizes: sizes };
    }
 
 ArrayDeclaration =
@@ -430,6 +434,14 @@ VectorType =
       });
    }
 
+ListType =
+   ("std" __ "::" __)? 
+   "list" __ "<" __ subtype:Type __ ">" {
+      return new ast.ListType({ 
+         subtype: subtype, 
+      });
+   }
+
 MapType =
    ("std" __ "::" __)? 
    "map" __ "<" __ key:Type __ "," __ value:Type __ ">" {
@@ -442,6 +454,7 @@ MapType =
 
 ContainerType = 
    VectorType /
+   ListType /
    MapType
 
 IteratorType =
