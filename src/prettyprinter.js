@@ -52,7 +52,7 @@ ast.declareMethod("prettyPrint", {
       });
       out.p(";");
    },
-   InputStatement: function (out) {
+   InputExpression: function (out) {
       out.w(this.head);
       this.forEachChild(function (child) {
          out.w(" >> ");
