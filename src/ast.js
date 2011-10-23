@@ -84,6 +84,7 @@ var nodeTypes = [
    "StringLiteral",
 
    "Identifier",
+   "OperatorName",
    "FunctionDefinition", 
    "CallStatement",
    "MethodCall",
@@ -101,8 +102,14 @@ var nodeTypes = [
 
    "Type", 
    "VectorType",
+   "ListType",
    "MapType",
    "IteratorType",
+
+   "ClassDeclaration",
+   "MethodDeclaration",
+   "MethodDefinition",
+   "MethodInitialization",
 
    "ArrayTypedefDeclaration",
    "StructDeclaration",
@@ -118,12 +125,14 @@ var nodeTypes = [
    "CommaExpression",
    "PostfixExpression",
    "UnaryExpression",
+   "NewCallExpression",
    "AssignmentExpression",
    "LogicalANDExpression",
    "LogicalORExpression",
    "ComparisonExpression",
    "CallExpression",
 
+   "AloneStatementBlock",
    "AssignmentStatement",
    "InputExpression",
    "ExpressionStatement",
