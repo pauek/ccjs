@@ -86,6 +86,7 @@ var nodeTypes = [
    "Identifier",
    "OperatorName",
    "FunctionDefinition", 
+   "FunctionDeclaration", 
    "CallStatement",
    "MethodCall",
    "ActualParameterList",

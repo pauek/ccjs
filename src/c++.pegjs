@@ -48,8 +48,8 @@ OperatorName =
    }
 
 FullIdentifier = 
-   id:(IdentifierStart IdentifierRest*) {
-      return id.join('');
+   start:IdentifierStart rest:IdentifierRest* {
+      return start + rest.join('');
    }
 
 Identifier = 
@@ -326,7 +326,7 @@ AssignmentExpression =
    Condition
 
 CommaExpression =
-   first:AssignmentExpression rest:(__ "," __ AssignmentExpression) {
+   first:AssignmentExpression rest:(__ "," __ AssignmentExpression)+ {
       var result = [first];
       for (var i in rest) {
          result.push(rest[i][3]);
@@ -725,8 +725,13 @@ FunctionDefinition =
       return new ast.FunctionDefinition(header, body);
    }
 
+FunctionDeclaration =
+   header:FunctionHeader __ ";" {
+      return new ast.FunctionDeclaration(header);
+   }
+
 IncludeDirective =
-  "#include" _ [<"] file:[a-z.]* [>"] {
+  "#include" _ [<"] file:[_A-Za-z0-9.]* [>"] {
      return new ast.IncludeDirective({ file: file.join('') });
   }
 
@@ -735,8 +740,8 @@ UsingDirective =
   UsingNamespaceDirective
 
 UsingSymbolDirective =
-   "using" __ ns:Identifier _ "::" _ sym:Identifier __ ";" {
-      return new ast.UsingDirective({ namespace: ns, symbol: sym });
+   "using" __ sym:Identifier __ ";" {
+      return new ast.UsingDirective({ symbol: sym });
    }
 
 UsingNamespaceDirective =
@@ -838,6 +843,7 @@ ProgramPart =
   UsingDirective /
   ClassDeclaration /
   MethodDefinition /
+  FunctionDeclaration /
   FunctionDefinition /
   StructDeclaration /
   ArrayTypedefDeclaration /
