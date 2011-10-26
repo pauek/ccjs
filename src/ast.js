@@ -130,9 +130,13 @@ var nodeTypes = [
    "PostfixExpression",
    "UnaryExpression",
    "NewExpression",
+   "ConversionExpression",
    "AssignmentExpression",
    "LogicalANDExpression",
    "LogicalORExpression",
+   "BitwiseANDExpression",
+   "BitwiseORExpression",
+   "BitwiseExclusiveORExpression",
    "RelationalExpression",
    "CallExpression",
 

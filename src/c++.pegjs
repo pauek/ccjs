@@ -189,7 +189,7 @@ IdentifierStart = [_A-Za-z]
 IdentifierRest  = [_A-Za-z0-9]
 
 FullIdentifier = 
-   !(KeyWord (WhiteSpace / LineTerminatorSeq / Comment)) 
+   !(KeyWord (WhiteSpace / LineTerminatorSeq / Comment))
    start:IdentifierStart rest:IdentifierRest* {
       return start + rest.join('');
    }
@@ -304,19 +304,25 @@ IteratorType =
 /******************** Expressions ********************/
 
 PrimaryExpression =
+   ConversionExpression /
    NewExpression /
    ReferenceExpression /
    ConditionalExpression /
    Literal /
    "(" __ expr:Expression __ ")" { return expr; }
 
+ConversionExpression =
+   type:Type __ "(" __ expr:PrimaryExpression __ ")" {
+      return new ast.ConversionExpression({ type: type, expr: expr });
+   }
+
+ReferenceExpression =
+   AccessExpression
+
 DirectReferenceExpression =
    CallExpression /
    VariableReference /
    "(" __ expr:Expression __ ")" { return expr; }
-
-ReferenceExpression =
-   AccessExpression
 
 PostfixExpression = 
    left:ReferenceExpression _ operator:PostfixOperator {
@@ -406,22 +412,40 @@ EqualityExpression =
    } /
    RelationalExpression
 
-AssignmentOperator = "+=" / "*=" / "/=" / "-=" / "%=" / "=" 
-
-LogicalANDExpression =
-   head:EqualityExpression tail:(__ "&&" __ EqualityExpression)+ {
-      return new ast.LogicalANDExpression({}, collect(head, tail, 3));
+BitwiseANDExpression =
+   head:EqualityExpression tail:(__ "&" __ EqualityExpression)+ {
+      return new ast.BitwiseANDExpression({}, collect(head, tail, 3));
    } /
    EqualityExpression
 
+BitwiseExclusiveORExpression =
+   head:BitwiseANDExpression tail:(__ "&" __ BitwiseANDExpression)+ {
+      return new ast.BitwiseExclusiveORExpression({}, collect(head, tail, 3));
+   } /
+   BitwiseANDExpression
+
+BitwiseORExpression =
+   head:BitwiseExclusiveORExpression tail:(__ "&" __ BitwiseExclusiveORExpression)+ {
+      return new ast.BitwiseORExpression({}, collect(head, tail, 3));
+   } /
+   BitwiseExclusiveORExpression
+
+LogicalANDExpression =
+   head:BitwiseORExpression tail:(__ ("and" / "&&") __ BitwiseORExpression)+ {
+      return new ast.LogicalANDExpression({}, collect(head, tail, 3));
+   } /
+   BitwiseORExpression
+
 LogicalORExpression =
-   head:LogicalANDExpression tail:(__ "||" __ LogicalANDExpression)+ {
+   head:LogicalANDExpression tail:(__ ("or" / "||") __ LogicalANDExpression)+ {
       return new ast.LogicalORExpression({}, collect(head, tail, 3));
    } /
    LogicalANDExpression
 
 Condition = 
    LogicalORExpression
+
+AssignmentOperator = "+=" / "*=" / "/=" / "-=" / "%=" / "=" 
 
 AssignmentExpression =
    lvalue:ReferenceExpression __ 
@@ -442,7 +466,7 @@ CommaExpression =
    AssignmentExpression
 
 Expression =
-   AssignmentExpression
+   CommaExpression
 
 VariableReference =
    name:Identifier { 
@@ -601,7 +625,7 @@ OutputStatement =
    }
 
 ExpressionStatement =
-   expr:CommaExpression __ ";" {
+   expr:Expression __ ";" {
       return new ast.ExpressionStatement({ expr: expr });
    }
 
