@@ -56,7 +56,15 @@ fs.readFile(opts.ccfile, 'utf-8', function (err, data) {
       try {
          var tree = cc.parse(data);
       }  catch (e) {
+         var lines = data.split("\n");
          console.log(e.line + ":" + e.column + ":" + e.message);
+         console.log(lines[e.line - 1]);
+         var arrow = "";
+         for (var i = 1; i < e.column; i++) {
+            arrow += " ";
+         }
+         arrow += "^";
+         console.log(arrow);
       }
    }
 });
