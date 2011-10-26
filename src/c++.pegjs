@@ -189,7 +189,7 @@ IdentifierStart = [_A-Za-z]
 IdentifierRest  = [_A-Za-z0-9]
 
 FullIdentifier = 
-   !(KeyWord (WhiteSpace / LineTerminatorSeq / Comment))
+   !(KeyWord !IdentifierRest)
    start:IdentifierStart rest:IdentifierRest* {
       return start + rest.join('');
    }
@@ -212,20 +212,20 @@ Identifier =
 
 BasicTypeName = "bool" / "int" / "string" / "long" / "char" / "float" / "double" / "void"
 
-BasicType = type:BasicTypeName !IdentifierStart { return type; }
+BasicType = type:BasicTypeName !IdentifierRest { return type; }
 
 Type = 
    ztatic:("static" __)?
    konst:("const" __)? 
    name:(
       IteratorType /
-      BasicType / 
       ContainerType /
-      id:Identifier { return id.id; }
+      Identifier /
+      BasicType
    ) 
    ref:(__ "&")?
    ptr:(__ "*")?
-   !(__ ":" / __ "(") {
+   {
      return new ast.Type({ 
         name: name, 
         konst: (konst !== ""),
@@ -312,7 +312,7 @@ PrimaryExpression =
    "(" __ expr:Expression __ ")" { return expr; }
 
 ConversionExpression =
-   type:Type __ "(" __ expr:PrimaryExpression __ ")" {
+   type:Type __ "(" __ expr:Expression __ ")" {
       return new ast.ConversionExpression({ type: type, expr: expr });
    }
 
@@ -351,7 +351,7 @@ MultiplicativeOperator
 
 MultiplicativeExpression =
    head:UnaryExpression
-   tail:(__ MultiplicativeOperator __ PrimaryExpression)* {
+   tail:(__ MultiplicativeOperator __ UnaryExpression)* {
       var result = head;
       for (var i in tail) {
          result = new ast.BinaryExpression({
@@ -419,13 +419,13 @@ BitwiseANDExpression =
    EqualityExpression
 
 BitwiseExclusiveORExpression =
-   head:BitwiseANDExpression tail:(__ "&" __ BitwiseANDExpression)+ {
+   head:BitwiseANDExpression tail:(__ "^" __ BitwiseANDExpression)+ {
       return new ast.BitwiseExclusiveORExpression({}, collect(head, tail, 3));
    } /
    BitwiseANDExpression
 
 BitwiseORExpression =
-   head:BitwiseExclusiveORExpression tail:(__ "&" __ BitwiseExclusiveORExpression)+ {
+   head:BitwiseExclusiveORExpression tail:(__ "|" __ BitwiseExclusiveORExpression)+ {
       return new ast.BitwiseORExpression({}, collect(head, tail, 3));
    } /
    BitwiseExclusiveORExpression
@@ -603,16 +603,17 @@ InputExpression =
 
 Statement =
    DeleteStatement /
+   BreakStatement /
    ReturnStatement /
-   SwitchStatement /
 	IfElseIfStatement /
 	IfElseStatement /
    IfStatement /
+   SwitchStatement /
    WhileStatement /
    ForStatement /
-   DeclarationStatement /
-   ExpressionStatement /
-   OutputStatement
+   VariableDeclarationStatement /
+   OutputStatement /
+   ExpressionStatement
 
 VariableDeclarationStatement =
    decl:VariableDeclaration __ ";" {
@@ -620,7 +621,7 @@ VariableDeclarationStatement =
    }
 
 OutputStatement =
-   head:Identifier elems:(__ "<<" __ Expression)* __ ";" {
+   head:Identifier elems:(__ "<<" __ Expression)+ __ ";" {
       return new ast.OutputStatement({ head: head }, collect(null, elems, 3));
    }
 
@@ -628,9 +629,6 @@ ExpressionStatement =
    expr:Expression __ ";" {
       return new ast.ExpressionStatement({ expr: expr });
    }
-
-DeclarationStatement =
-   VariableDeclarationStatement
 
 ParenthesizedCondition =
    "(" __ cond:Condition __ ")" {
@@ -746,6 +744,11 @@ ReturnStatement =
       return new ast.ReturnStatement({ expr: expr });
    }
 
+BreakStatement =
+   "break" __ ";" {
+      return new ast.BreakStatement({});
+   }
+
 DeleteStatement =
    "delete" __ expr:ReferenceExpression __ ";" {
       return new ast.DeleteStatement({ expr: expr });
@@ -755,35 +758,36 @@ DeleteStatement =
 /************** Program Parts ***************/
 
 ProgramPart =
-  IncludeDirective /
-  UsingDirective /
-  ClassDeclaration /
-  FunctionDeclaration /
-  FunctionDefinition /
-  MethodDefinition /
-  ArrayTypedefDeclaration /
-  VariableDeclarationStatement /
-  Comment
+   IncludeDirective /
+   UsingDirective /
+   ClassDeclaration /
+   ConstructorDefinition /
+   MethodDefinition /
+   FunctionDeclaration /
+   FunctionDefinition /
+   ArrayTypedefDeclaration /
+   VariableDeclarationStatement /
+   Comment
 
 IncludeDirective =
-  LocalIncludeDirective /
-  SystemIncludeDirective
+   LocalIncludeDirective /
+   SystemIncludeDirective
 
 IncludeFileName = [_A-Za-z0-9./]*
 
 LocalIncludeDirective =
-  "#include" _ ["] file:IncludeFileName ["] {
-     return new ast.IncludeDirective({ file: file.join('') });
-  }
+   "#include" _ ["] file:IncludeFileName ["] {
+      return new ast.IncludeDirective({ file: file.join('') });
+   }
 
 SystemIncludeDirective =
-  "#include" _ [<] file:IncludeFileName [>] {
-     return new ast.IncludeDirective({ system: true, file: file.join('') });
-  }
+   "#include" _ [<] file:IncludeFileName [>] {
+      return new ast.IncludeDirective({ system: true, file: file.join('') });
+   }
 
 UsingDirective =
-  UsingSymbolDirective /
-  UsingNamespaceDirective
+   UsingSymbolDirective /
+   UsingNamespaceDirective
 
 UsingSymbolDirective =
    "using" __ sym:Identifier __ ";" {
@@ -889,17 +893,26 @@ MethodDeclaration =
 AttributeDeclaration = 
    VariableDeclarationStatement
 
+ConstructorDefinition =
+   inline:("inline" __)?
+   header:FunctionHeaderNoType __ konst:(__ "const")? __ 
+   initlist:InitializationList? __
+   body:StatementBlock  {
+      if (initlist !== "") {
+         header.initlist = initlist;
+      }
+      header.inline = (inline !== "");
+      header.konst = (konst !== "");
+      return new ast.MethodDefinition(header, body);
+   }
+
 MethodDefinition =
    inline:("inline" __)?
    type:(Type __)?
    header:FunctionHeaderNoType __ konst:(__ "const")? __ 
-   initlist:InitializationList? __
    body:StatementBlock  {
       if (type !== "") {
-         header.type = type[0];
-      }
-      if (initlist !== "") {
-         header.initlist = initlist;
+         header.type = type;
       }
       header.inline = (inline !== "");
       header.konst = (konst !== "");

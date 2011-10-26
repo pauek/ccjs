@@ -157,6 +157,7 @@ var nodeTypes = [
    "SwitchStatement",
    "DeleteStatement",
    "ReturnStatement",
+   "BreakStatement",
    "Block",
    "BinaryExpression",
 
