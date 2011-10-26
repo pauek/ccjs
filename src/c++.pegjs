@@ -578,7 +578,6 @@ InputExpression =
 /*************** Statements ***************/
 
 Statement =
-   DeclarationStatement /
    DeleteStatement /
    ReturnStatement /
    SwitchStatement /
@@ -587,8 +586,7 @@ Statement =
    IfStatement /
    WhileStatement /
    ForStatement /
-   CallStatement /
-   AssignmentStatement /
+   DeclarationStatement /
    ExpressionStatement /
    OutputStatement
 
@@ -604,16 +602,11 @@ OutputStatement =
 
 ExpressionStatement =
    expr:CommaExpression __ ";" {
-      return new ast.ExpressionStatement({}, expr.children());
+      return new ast.ExpressionStatement({ expr: expr });
    }
 
 DeclarationStatement =
    VariableDeclarationStatement
-
-AssignmentStatement = 
-   expr:AssignmentExpression __ ";" {
-      return new ast.AssignmentStatement({ expr: expr });
-   }
 
 ParenthesizedCondition =
    "(" __ cond:Condition __ ")" {
@@ -722,11 +715,6 @@ StatementList =
 CallExpression = 
    name:Identifier __ args:ActualParameterList {
       return new ast.CallExpression({ name: name, args: args });
-   }
-
-CallStatement =
-   call:(CallExpression / AccessExpression) __ ";" {
-      return new ast.CallStatement({ call: call });
    }
 
 ReturnStatement =
