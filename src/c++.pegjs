@@ -387,21 +387,13 @@ AssignmentOperator = "+=" / "*=" / "/=" / "-=" / "%=" / "="
 
 LogicalANDExpression =
    head:ComparisonExpression tail:(__ "&&" __ ComparisonExpression)+ {
-      var result = [head];
-      for (var i in tail) {
-         result.push(tail[i][3]);
-      }
-      return new ast.LogicalANDExpression({}, result);
+      return new ast.LogicalANDExpression({}, collect(head, tail, 3));
    } /
    ComparisonExpression
 
 LogicalORExpression =
    head:LogicalANDExpression tail:(__ "||" __ LogicalANDExpression)+ {
-      var result = [head];
-      for (var i in tail) {
-         result.push(tail[i][3]);
-      }
-      return new ast.LogicalORExpression({}, result);
+      return new ast.LogicalORExpression({}, collect(head, tail, 3));
    } /
    LogicalANDExpression
 
@@ -422,11 +414,7 @@ AssignmentExpression =
 
 CommaExpression =
    first:AssignmentExpression rest:(__ "," __ AssignmentExpression)+ {
-      var result = [first];
-      for (var i in rest) {
-         result.push(rest[i][3]);
-      }
-      return new ast.CommaExpression({}, result);
+      return new ast.CommaExpression({}, collect(first, rest, 3));
    } /
    AssignmentExpression
 
@@ -482,11 +470,7 @@ FormalParameter =
 
 FormalParameterList =
    head:FormalParameter tail:(__ "," __ FormalParameter)* {
-      var result = [head];
-      for (var i in tail) {
-         result.push(tail[i][3]);
-      }
-      return result;
+      return collect(head, tail, 3);
    } /
    "void" { return []; }
 
@@ -501,20 +485,12 @@ SingleVariableDeclaration =
 
 ArrayInitialization = 
    "{" __ first:Expression rest:(__ "," __ Expression)* __ "}" {
-      var result = [first];
-      for (var i in rest) {
-         result.push(rest[i][3]);
-      }
-      return result;
+      return collect(first, rest, 3);
    }
 
 ArraySizes =
    "[" __ size1:(Expression __)? "]" othersizes:(__ "[" __ Expression __ "]")* {
-      var sizes = [(size1 !== "" ? size1 : null)];
-      for (var i in othersizes) {
-         sizes.push(othersizes[i][3]);
-      }
-      return sizes;
+      return collect(size1 !== "" ? size1 : undefined, othersizes, 3);
    }
 
 ArrayDeclarationNoInit =
@@ -551,11 +527,7 @@ OneVariableDeclaration =
 
 VariableDeclarationList =
    head:OneVariableDeclaration tail:(__ "," __ OneVariableDeclaration)* {
-      var result = [head];
-      for (var i in tail) {
-         result.push(tail[i][3]);
-      }
-      return result;
+      return collect(head, tail, 3);
    }
 
 VariableDeclaration =
@@ -565,11 +537,7 @@ VariableDeclaration =
 
 ExpressionList = 
   head:Expression tail:(__ "," __ Expression)* {
-     var result = [head];
-     for (var i in tail) {
-        result.push(tail[i][3]);
-     }  
-     return result;
+     return collect(head, tail, 3);
   }
 
 ActualParameterList =
@@ -580,11 +548,7 @@ ActualParameterList =
 
 InputExpression =
    head:Identifier elems:(__ ">>" __ ReferenceExpression)+ {
-      var elements = [];
-      for (var i in elems) {
-         elements.push(elems[i][3]);
-      }
-      return new ast.InputExpression({ head: head }, elements);
+      return new ast.InputExpression({ head: head }, collect(null, elems, 3));
    }
 
 
@@ -612,11 +576,7 @@ VariableDeclarationStatement =
 
 OutputStatement =
    head:Identifier elems:(__ "<<" __ Expression)* __ ";" {
-      var elements = [];
-      for (var i in elems) {
-         elements.push(elems[i][3]);
-      }
-      return new ast.OutputStatement({ head: head }, elements);
+      return new ast.OutputStatement({ head: head }, collect(null, elems, 3));
    }
 
 ExpressionStatement =
@@ -695,10 +655,7 @@ IfElseIfStatement =
    "if" __ first:ConditionalBlock
    rest:(__ "else" __ "if" __ ConditionalBlock)+
 	last:(__ "else" __ StatementBlock)? {
-	   var blocks = [first];
-		for (var i in rest) {
-		   blocks.push(rest[i][5]);
-      }
+	   var blocks = collect(first, rest, 5);
 		if (last !== undefined) {
 		   blocks.push(new ast.ConditionalBlock({}, last[3]));
       }
@@ -717,11 +674,7 @@ SwitchStatement =
    "switch" __ "(" __ expr:Expression __ ")" __ "{"
    _cases:(__ SwitchCase)+ __ 
    "}" {
-      var cases = [];
-      for (var i in _cases) {
-         cases.push(_cases[i][1]);
-      }
-      return new ast.SwitchStatement({ expr: expr }, cases);
+      return new ast.SwitchStatement({ expr: expr }, collect(null, _cases, 1));
    }
 
 StatementBlock =
@@ -740,11 +693,7 @@ AloneStatementBlock =
 StatementList =
    head:(Statement / AloneStatementBlock) 
    tail:(__ (Statement / AloneStatementBlock))* {
-      var result = [head];
-      for (var i in tail) {
-         result.push(tail[i][1]);
-      }
-      return result;
+      return collect(head, tail, 1);
    }
 
 CallExpression = 
@@ -924,11 +873,7 @@ MethodDefinition =
 
 InitializationList =
    ":" init:(__ ConstructorCall)+ {
-      var result = []
-      for (var i in init) {
-         result.push(init[i][1]);
-      }
-      return new ast.InitializationList({}, result);
+      return new ast.InitializationList({}, collect(null, init, 1));
    }
 
 
