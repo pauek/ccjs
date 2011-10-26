@@ -78,6 +78,7 @@ var nodeTypes = [
    "IncludeDirective", 
 	"UsingDirective", 
 
+   "BooleanLiteral",
    "CharLiteral",
    "IntegerLiteral",
    "FloatLiteral",
@@ -148,6 +149,7 @@ var nodeTypes = [
 	"ForStatement", 
    "SwitchCase",
    "SwitchStatement",
+   "DeleteStatement",
    "ReturnStatement",
    "Block",
    "BinaryExpression",
@@ -251,14 +253,16 @@ ast.declareMethod("printTree", {
       for (var i = 0; i < nodeprops.length; i++) {
          var prop = nodeprops[i];
          if (this[prop] instanceof Array) {
-				out.p();
-				out.w(prop + ":");
             var property = this[prop];
-				for (var j = 0; j < property.length; j++) {
-					if (property[j] instanceof ast.Node) {
-						property[j].printTree(out);
-					}
-				}
+            if (property.length > 0) {
+				   out.p();
+				   out.w(prop + ":");
+				   for (var j = 0; j < property.length; j++) {
+					   if (property[j] instanceof ast.Node) {
+						   property[j].printTree(out);
+					   }
+				   }
+            }
          } else {
             out.p();
 			   out.w(prop + ":");

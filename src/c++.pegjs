@@ -2,6 +2,22 @@
 start = 
    __ program:Program __ { return program; }
 
+KeyWord = 
+   "and" / "and_eq" / "alignas" / "alignof" / "asm" / "auto" / 
+   "bitand" / "bitor" / "bool" / "break" / "case" / "catch" / "char" / 
+   "char16_t" / "char32_t" / "class" / "compl" / "const" / "constexpr" / 
+   "const_cast" / "continue" / "decltype" / "default" / "delete" / "double" / 
+   "dynamic_cast" / "else" / "enum" / "explicit" / "export" / "extern" / 
+   "false" / "float" / "for" / "friend" / "goto" / "if" / "inline" / "int" / 
+   "long" / "mutable" / "namespace" / "new" / "noexcept" / "not" / "not_eq" /
+   "nullptr" / "operator" / "or" / "or_eq" / "private" / "protected" / "public" / 
+   "register" / "reinterpret_cast" / "return" / "short" / "signed" / "sizeof" / 
+   "static" / "static_assert" / "static_cast" / "struct" / "switch" / "template" / 
+   "this" / "thread_local" / "throw" / "true" / "try" / "typedef" / "typeid" / 
+   "typename" / "union" / "unsigned" / "using" / "virtual" / "void" / "volatile" / 
+   "wchar_t" / "while" / "xor" / "xor_eq"
+
+
 WhiteSpace = [ \t\f]
 LineTerminator = [\n\r]
 LineTerminatorSeq = "\n" / "\r\n" / "\r"
@@ -32,15 +48,14 @@ IdentifierPart =
 IdentifierStart = [_A-Za-z]
 IdentifierRest  = [_A-Za-z0-9]
 
-Operator = "--" / "++" / "()" / "[]" / "." / "->" /
+Operator = "+=" / "-=" / "*=" / "/=" / "%=" / ">>=" / "<<=" / "&=" / "^=" / "|=" / 
    "+" / "-" / "!" / "~" / "*" / "new" /
    ".*" / "->*" / 
    "*" / "%" / "/" /
    "<<" / ">>" /
    "<" / ">" / "<=" / ">=" /
    "==" / "!=" / "&" / "|" / "^" / "&&" / "||" / "=" /
-   "+=" / "-=" / "*=" / "/=" / "%=" / ">>=" / "<<=" / "&=" / "^=" / "|=" / 
-   ","
+   "," / "--" / "++" / "()" / "[]" / "." / "->" /
 
 OperatorName = 
    "operator" __ op:Operator {
@@ -48,6 +63,7 @@ OperatorName =
    }
 
 FullIdentifier = 
+   !(KeyWord (WhiteSpace / LineTerminatorSeq / Comment)) 
    start:IdentifierStart rest:IdentifierRest* {
       return start + rest.join('');
    }
@@ -104,8 +120,13 @@ Literal =
    lit:DecimalIntegerLiteral {
       return new ast.IntegerLiteral({ lit: lit }); 
    } /
+   lit:BooleanLiteral {
+      return new ast.BooleanLiteral({ lit: lit });
+   } /
    CharLiteral /
    StringLiteral
+
+BooleanLiteral = "true" / "false"
 
 CharLiteral =
    "'" lit:QuotedCharacter "'" {
@@ -158,7 +179,7 @@ LineContinuation
 
 LineTerminatorSequence = "\n" / "\r\n" / "\r"
 
-BasicTypeName = "bool" / "int" / "string" / "char" / "float" / "double" / "void"
+BasicTypeName = "bool" / "int" / "string" / "long" / "char" / "float" / "double" / "void"
 
 BasicType = type:BasicTypeName !IdentifierPart { return type; }
 
@@ -187,18 +208,6 @@ ArrayTypedefDeclaration =
          name: decl.name, 
          size: decl.size 
       });
-   }
-
-StructDeclaration =
-   "struct" __ name:Identifier __ "{" __
-      first:VariableDeclarationStatement 
-      rest:(__ VariableDeclarationStatement)* __
-   "}" __ ";" {
-      var fields = [first];
-      for (var i = 0; i < rest.length; i++) {
-         fields.push(rest[i][1]);
-      }
-      return new ast.StructDeclaration({ name: name }, fields);
    }
 
 PrimaryExpression =
@@ -542,7 +551,7 @@ InputExpression =
 
 ExpressionStatement =
    expr:CommaExpression __ ";" {
-      return new ast.ExpressionStatement({ head: expr.head }, expr.children());
+      return new ast.ExpressionStatement({}, expr.children());
    }
 
 DeclarationStatement =
@@ -550,6 +559,7 @@ DeclarationStatement =
 
 Statement =
    DeclarationStatement /
+   DeleteStatement /
    ReturnStatement /
    SwitchStatement /
 	IfElseIfStatement /
@@ -702,6 +712,11 @@ ReturnStatement =
       return new ast.ReturnStatement({ expr: expr });
    }
 
+DeleteStatement =
+   "delete" __ expr:ReferenceExpression __ ";" {
+      return new ast.DeleteStatement({ expr: expr });
+   }
+
 
 FunctionHeaderNoType =
    name:Identifier __ 
@@ -781,7 +796,7 @@ ClassPart =
    AttributeDeclaration
   
 ClassDeclaration =
-  "class" __ name:Identifier __ 
+  kind:("struct" / "class") __ name:Identifier __ 
   base:(
      ":" __ mode:AccessMode __ name:Identifier __ { 
         return { mode: mode, name: name };
@@ -809,7 +824,11 @@ ClassDeclaration =
      if (base !== "") {
         klass.base = base;
      }
-     return new ast.ClassDeclaration(klass, members);
+     if (kind == "class") {
+        return new ast.ClassDeclaration(klass, members);
+     } else {
+        return new ast.StructDeclaration(klass, members);
+     }
   }
 
 MethodInitialization =
@@ -845,7 +864,6 @@ ProgramPart =
   MethodDefinition /
   FunctionDeclaration /
   FunctionDefinition /
-  StructDeclaration /
   ArrayTypedefDeclaration /
   VariableDeclarationStatement /
   Comment
