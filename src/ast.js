@@ -113,7 +113,7 @@ var nodeTypes = [
    "ClassDeclaration",
    "MethodDeclaration",
    "MethodDefinition",
-   "MethodInitialization",
+   "InitializationList",
 
    "ArrayTypedefDeclaration",
    "StructDeclaration",
@@ -129,7 +129,7 @@ var nodeTypes = [
    "CommaExpression",
    "PostfixExpression",
    "UnaryExpression",
-   "NewCallExpression",
+   "NewExpression",
    "AssignmentExpression",
    "LogicalANDExpression",
    "LogicalORExpression",

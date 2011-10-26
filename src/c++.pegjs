@@ -1,22 +1,24 @@
+{
+        
+function collect(head, tail, n) {
+   var k = (n !== undefined ? 0 : n);
+   var result = [];
+   if (head !== null) {
+      result.push(head);
+   }
+   for (var i in tail) {
+      result.push(tail[i][k]);
+   }
+   return result;
+}
+
+}
 
 start = 
    __ program:Program __ { return program; }
 
-KeyWord = 
-   "and" / "and_eq" / "alignas" / "alignof" / "asm" / "auto" / 
-   "bitand" / "bitor" / "bool" / "break" / "case" / "catch" / "char" / 
-   "char16_t" / "char32_t" / "class" / "compl" / "const" / "constexpr" / 
-   "const_cast" / "continue" / "decltype" / "default" / "delete" / "double" / 
-   "dynamic_cast" / "else" / "enum" / "explicit" / "export" / "extern" / 
-   "false" / "float" / "for" / "friend" / "goto" / "if" / "inline" / "int" / 
-   "long" / "mutable" / "namespace" / "new" / "noexcept" / "not" / "not_eq" /
-   "nullptr" / "operator" / "or" / "or_eq" / "private" / "protected" / "public" / 
-   "register" / "reinterpret_cast" / "return" / "short" / "signed" / "sizeof" / 
-   "static" / "static_assert" / "static_cast" / "struct" / "switch" / "template" / 
-   "this" / "thread_local" / "throw" / "true" / "try" / "typedef" / "typeid" / 
-   "typename" / "union" / "unsigned" / "using" / "virtual" / "void" / "volatile" / 
-   "wchar_t" / "while" / "xor" / "xor_eq"
 
+/************ WhiteSpace and Comments ************/
 
 WhiteSpace = [ \t\f]
 LineTerminator = [\n\r]
@@ -42,11 +44,23 @@ Comment =
    MultiLineComment /
    SingleLineComment
 
-IdentifierPart = 
-   IdentifierStart
 
-IdentifierStart = [_A-Za-z]
-IdentifierRest  = [_A-Za-z0-9]
+/************ Keywords and Operators ************/
+
+KeyWord = 
+   "and" / "and_eq" / "alignas" / "alignof" / "asm" / "auto" / 
+   "bitand" / "bitor" / "bool" / "break" / "case" / "catch" / "char" / 
+   "char16_t" / "char32_t" / "class" / "compl" / "const" / "constexpr" / 
+   "const_cast" / "continue" / "decltype" / "default" / "delete" / "double" / 
+   "dynamic_cast" / "else" / "enum" / "explicit" / "export" / "extern" / 
+   "false" / "float" / "for" / "friend" / "goto" / "if" / "inline" / "int" / 
+   "long" / "mutable" / "namespace" / "new" / "noexcept" / "not" / "not_eq" /
+   "nullptr" / "operator" / "or" / "or_eq" / "private" / "protected" / "public" / 
+   "register" / "reinterpret_cast" / "return" / "short" / "signed" / "sizeof" / 
+   "static" / "static_assert" / "static_cast" / "struct" / "switch" / "template" / 
+   "this" / "thread_local" / "throw" / "true" / "try" / "typedef" / "typeid" / 
+   "typename" / "union" / "unsigned" / "using" / "virtual" / "void" / "volatile" / 
+   "wchar_t" / "while" / "xor" / "xor_eq"
 
 Operator = "+=" / "-=" / "*=" / "/=" / "%=" / ">>=" / "<<=" / "&=" / "^=" / "|=" / 
    "+" / "-" / "!" / "~" / "*" / "new" /
@@ -57,34 +71,8 @@ Operator = "+=" / "-=" / "*=" / "/=" / "%=" / ">>=" / "<<=" / "&=" / "^=" / "|="
    "==" / "!=" / "&" / "|" / "^" / "&&" / "||" / "=" /
    "," / "--" / "++" / "()" / "[]" / "." / "->" /
 
-OperatorName = 
-   "operator" __ op:Operator {
-      return "operator" + op;
-   }
 
-FullIdentifier = 
-   !(KeyWord (WhiteSpace / LineTerminatorSeq / Comment)) 
-   start:IdentifierStart rest:IdentifierRest* {
-      return start + rest.join('');
-   }
-
-Identifier = 
-   prefix:(FullIdentifier __ "::" __)* name:(OperatorName / FullIdentifier) {
-      var id = { id: name };
-      if (prefix !== "") { 
-         id.prefix = [];
-         for (var i in prefix) { 
-            id.prefix.push(prefix[i][0]); 
-         }
-      }
-      return new ast.Identifier(id);
-   }
-
-DecimalIntegerLiteral = 
-   "0" { return 0; } /
-   sign:"-"? head:NonZeroDigit tail:DecimalDigits? { 
-      return parseInt(sign + head + tail);
-   }
+/************ Literals ************/
 
 DecimalDigits
   = digits:DecimalDigit+ { return digits.join(""); }
@@ -95,6 +83,12 @@ NonZeroDigit = [1-9]
 SignedInteger = 
    sign:[-+]? digits:DecimalDigits {
       return sign + digits;
+   }
+
+DecimalIntegerLiteral = 
+   "0" { return 0; } /
+   sign:"-"? head:NonZeroDigit tail:DecimalDigits? { 
+      return parseInt(sign + head + tail);
    }
 
 FloatLiteral = 
@@ -179,9 +173,37 @@ LineContinuation
 
 LineTerminatorSequence = "\n" / "\r\n" / "\r"
 
+
+/************ Identifiers ************/
+
+IdentifierStart = [_A-Za-z]
+IdentifierRest  = [_A-Za-z0-9]
+
+FullIdentifier = 
+   !(KeyWord (WhiteSpace / LineTerminatorSeq / Comment)) 
+   start:IdentifierStart rest:IdentifierRest* {
+      return start + rest.join('');
+   }
+
+OperatorName = 
+   "operator" __ op:Operator {
+      return "operator" + op;
+   }
+
+Identifier = 
+   prefix:(FullIdentifier __ "::" __)* name:(OperatorName / FullIdentifier) {
+      var id = { id: name };
+      if (prefix !== "") { 
+         id.prefix = collect(null, prefix, 0);
+      }
+      return new ast.Identifier(id);
+   }
+
+/***************** Types ******************/
+
 BasicTypeName = "bool" / "int" / "string" / "long" / "char" / "float" / "double" / "void"
 
-BasicType = type:BasicTypeName !IdentifierPart { return type; }
+BasicType = type:BasicTypeName !IdentifierStart { return type; }
 
 Type = 
    ztatic:("static" __)?
@@ -213,8 +235,67 @@ ArrayTypedefDeclaration =
       });
    }
 
+VectorType =
+   ("std" __ "::" __)? 
+   "vector" __ "<" __ subtype:Type __ ">" {
+      return new ast.VectorType({ 
+         subtype: subtype, 
+      });
+   }
+
+ListType =
+   ("std" __ "::" __)? 
+   "list" __ "<" __ subtype:Type __ ">" {
+      return new ast.ListType({ 
+         subtype: subtype, 
+      });
+   }
+
+PairType =
+   ("std" __ "::" __)? 
+   "pair" __ "<" __ first:Type __ "," __ second:Type __ ">" {
+      return new ast.PairType({
+         first: first,
+         second: second,
+      });
+   }
+
+MapType =
+   ("std" __ "::" __)? 
+   multi:("multi")? "map" __ "<" __ key:Type __ "," __ value:Type __ ">" {
+      return new ast.MapType({
+         key: key,
+         value: value,
+         multimap: (multi !== ""),
+      });
+   }
+
+ContainerType = 
+   VectorType /
+   ListType /
+   PairType /
+   MapType
+
+IteratorType =
+   container:(
+     ContainerType /
+     "string" { 
+        return new ast.Type({ name: "string" }); 
+     }
+   ) __ "::" __ 
+   konst:("const_")? reverse:("reverse_")? "iterator" {
+      return new ast.IteratorType({ 
+         container: container,
+         konst: (konst !== ""),
+         reverse: (reverse !== ""),
+      });
+   }
+
+
+/******************** Expressions ********************/
+
 PrimaryExpression =
-   NewCallExpression /
+   NewExpression /
    ReferenceExpression /
    ConditionalExpression /
    Literal /
@@ -257,7 +338,7 @@ MultiplicativeExpression =
    head:UnaryExpression
    tail:(__ MultiplicativeOperator __ PrimaryExpression)* {
       var result = head;
-      for (var i = 0; i < tail.length; i++) {
+      for (var i in tail) {
          result = new ast.BinaryExpression({
             left:     result,
             operator: tail[i][1],
@@ -276,7 +357,7 @@ AdditiveExpression =
    head:MultiplicativeExpression
    tail:(__ AdditiveOperator __ MultiplicativeExpression)* {
       var result = head;
-      for (var i = 0; i < tail.length; i++) {
+      for (var i in tail) {
          result = new ast.BinaryExpression({
             left:     result,
             operator: tail[i][1],
@@ -307,7 +388,7 @@ AssignmentOperator = "+=" / "*=" / "/=" / "-=" / "%=" / "="
 LogicalANDExpression =
    head:ComparisonExpression tail:(__ "&&" __ ComparisonExpression)+ {
       var result = [head];
-      for (var i = 0; i < tail.length; i++) {
+      for (var i in tail) {
          result.push(tail[i][3]);
       }
       return new ast.LogicalANDExpression({}, result);
@@ -317,7 +398,7 @@ LogicalANDExpression =
 LogicalORExpression =
    head:LogicalANDExpression tail:(__ "||" __ LogicalANDExpression)+ {
       var result = [head];
-      for (var i = 0; i < tail.length; i++) {
+      for (var i in tail) {
          result.push(tail[i][3]);
       }
       return new ast.LogicalORExpression({}, result);
@@ -402,7 +483,7 @@ FormalParameter =
 FormalParameterList =
    head:FormalParameter tail:(__ "," __ FormalParameter)* {
       var result = [head];
-      for (var i = 0; i < tail.length; i++) {
+      for (var i in tail) {
          result.push(tail[i][3]);
       }
       return result;
@@ -421,7 +502,7 @@ SingleVariableDeclaration =
 ArrayInitialization = 
    "{" __ first:Expression rest:(__ "," __ Expression)* __ "}" {
       var result = [first];
-      for (var i = 0; i < rest.length; i++) {
+      for (var i in rest) {
          result.push(rest[i][3]);
       }
       return result;
@@ -450,12 +531,12 @@ ArrayDeclaration =
       return new ast.ArrayDeclaration(result);
    }
 
-NewCallExpression =
+NewExpression =
    "new" __ call:ConstructorCall {
-      return new ast.NewCallExpression({ klass: call.name, args: call.args });
+      return new ast.NewExpression({ klass: call.name, args: call.args });
    } /
    "new" __ klass:Identifier {
-      return new ast.NewCallExpression({ klass: klass });
+      return new ast.NewExpression({ klass: klass });
    }
 
 ConstructorCall =
@@ -471,7 +552,7 @@ OneVariableDeclaration =
 VariableDeclarationList =
    head:OneVariableDeclaration tail:(__ "," __ OneVariableDeclaration)* {
       var result = [head];
-      for (var i = 0; i < tail.length; i++) {
+      for (var i in tail) {
          result.push(tail[i][3]);
       }
       return result;
@@ -482,15 +563,10 @@ VariableDeclaration =
       return new ast.VariableDeclaration({ type: type }, lst);
    }
 
-VariableDeclarationStatement =
-   decl:VariableDeclaration __ ";" {
-      return new ast.VariableDeclarationStatement({ decl: decl });
-   }
-
 ExpressionList = 
   head:Expression tail:(__ "," __ Expression)* {
      var result = [head];
-     for (var i = 0; i < tail.length; i++) {
+     for (var i in tail) {
         result.push(tail[i][3]);
      }  
      return result;
@@ -501,87 +577,18 @@ ActualParameterList =
      return new ast.ActualParameterList({}, lst);
   }
 
-VectorType =
-   ("std" __ "::" __)? 
-   "vector" __ "<" __ subtype:Type __ ">" {
-      return new ast.VectorType({ 
-         subtype: subtype, 
-      });
-   }
-
-ListType =
-   ("std" __ "::" __)? 
-   "list" __ "<" __ subtype:Type __ ">" {
-      return new ast.ListType({ 
-         subtype: subtype, 
-      });
-   }
-
-PairType =
-   ("std" __ "::" __)? 
-   "pair" __ "<" __ first:Type __ "," __ second:Type __ ">" {
-      return new ast.PairType({
-         first: first,
-         second: second,
-      });
-   }
-
-MapType =
-   ("std" __ "::" __)? 
-   multi:("multi")? "map" __ "<" __ key:Type __ "," __ value:Type __ ">" {
-      return new ast.MapType({
-         key: key,
-         value: value,
-         multimap: (multi !== ""),
-      });
-   }
-
-ContainerType = 
-   VectorType /
-   ListType /
-   PairType /
-   MapType
-
-IteratorType =
-   container:(
-     ContainerType /
-     "string" { 
-        return new ast.Type({ name: "string" }); 
-     }
-   ) __ "::" __ 
-   konst:("const_")? reverse:("reverse_")? "iterator" {
-      return new ast.IteratorType({ 
-         container: container,
-         konst: (konst !== ""),
-         reverse: (reverse !== ""),
-      });
-   }
-
-OutputStatement =
-   head:Identifier elems:(__ "<<" __ Expression)* __ ";" {
-      var elements = [];
-      for (var i = 0; i < elems.length; i++) {
-         elements.push(elems[i][3]);
-      }
-      return new ast.OutputStatement({ head: head }, elements);
-   }
 
 InputExpression =
    head:Identifier elems:(__ ">>" __ ReferenceExpression)+ {
       var elements = [];
-      for (var i = 0; i < elems.length; i++) {
+      for (var i in elems) {
          elements.push(elems[i][3]);
       }
       return new ast.InputExpression({ head: head }, elements);
    }
 
-ExpressionStatement =
-   expr:CommaExpression __ ";" {
-      return new ast.ExpressionStatement({}, expr.children());
-   }
 
-DeclarationStatement =
-   VariableDeclarationStatement
+/*************** Statements ***************/
 
 Statement =
    DeclarationStatement /
@@ -597,6 +604,28 @@ Statement =
    AssignmentStatement /
    ExpressionStatement /
    OutputStatement
+
+VariableDeclarationStatement =
+   decl:VariableDeclaration __ ";" {
+      return new ast.VariableDeclarationStatement({ decl: decl });
+   }
+
+OutputStatement =
+   head:Identifier elems:(__ "<<" __ Expression)* __ ";" {
+      var elements = [];
+      for (var i in elems) {
+         elements.push(elems[i][3]);
+      }
+      return new ast.OutputStatement({ head: head }, elements);
+   }
+
+ExpressionStatement =
+   expr:CommaExpression __ ";" {
+      return new ast.ExpressionStatement({}, expr.children());
+   }
+
+DeclarationStatement =
+   VariableDeclarationStatement
 
 AssignmentStatement = 
    expr:AssignmentExpression __ ";" {
@@ -667,7 +696,7 @@ IfElseIfStatement =
    rest:(__ "else" __ "if" __ ConditionalBlock)+
 	last:(__ "else" __ StatementBlock)? {
 	   var blocks = [first];
-		for (var i = 0; i < rest.length; i++) {
+		for (var i in rest) {
 		   blocks.push(rest[i][5]);
       }
 		if (last !== undefined) {
@@ -689,7 +718,7 @@ SwitchStatement =
    _cases:(__ SwitchCase)+ __ 
    "}" {
       var cases = [];
-      for (var i = 0; i < _cases.length; i++) {
+      for (var i in _cases) {
          cases.push(_cases[i][1]);
       }
       return new ast.SwitchStatement({ expr: expr }, cases);
@@ -712,7 +741,7 @@ StatementList =
    head:(Statement / AloneStatementBlock) 
    tail:(__ (Statement / AloneStatementBlock))* {
       var result = [head];
-      for (var i = 0; i < tail.length; i++) {
+      for (var i in tail) {
          result.push(tail[i][1]);
       }
       return result;
@@ -739,45 +768,33 @@ DeleteStatement =
    }
 
 
-FunctionHeaderNoType =
-   name:Identifier __ 
-   "(" __ params:FormalParameterList? __ ")" {
-      var header = { name: name };
-      if (params !== '') {
-         header.params = params
-      }
-      return header;
-   }
+/************** Program Parts ***************/
 
-FunctionHeader =
-   type:Type __ header:FunctionHeaderNoType {
-      header.type = type;
-      return header;
-   }
-
-FunctionDefinition =
-   inline:("inline" __)? header:FunctionHeader __ body:StatementBlock {
-      header.inline = (inline !== "");
-      return new ast.FunctionDefinition(header, body);
-   }
-
-FunctionDeclaration =
-   header:FunctionHeader __ ";" {
-      return new ast.FunctionDeclaration(header);
-   }
+ProgramPart =
+  IncludeDirective /
+  UsingDirective /
+  ClassDeclaration /
+  FunctionDeclaration /
+  FunctionDefinition /
+  MethodDefinition /
+  ArrayTypedefDeclaration /
+  VariableDeclarationStatement /
+  Comment
 
 IncludeDirective =
   LocalIncludeDirective /
   SystemIncludeDirective
 
+IncludeFileName = [_A-Za-z0-9./]*
+
 LocalIncludeDirective =
-  "#include" _ ["] file:[_A-Za-z0-9./]* ["] {
+  "#include" _ ["] file:IncludeFileName ["] {
      return new ast.IncludeDirective({ file: file.join('') });
   }
 
 SystemIncludeDirective =
-  "#include" _ [<] file:[_A-Za-z0-9./]* [>] {
-     return new ast.IncludeDirective({ file: file.join('') });
+  "#include" _ [<] file:IncludeFileName [>] {
+     return new ast.IncludeDirective({ system: true, file: file.join('') });
   }
 
 UsingDirective =
@@ -794,37 +811,33 @@ UsingNamespaceDirective =
       return new ast.UsingDirective({ namespace: ns });
    }
 
-AccessMode = "public" / "private" / "protected"
-
-ClassLabel = 
-   label:AccessMode ":" { 
-      return label; 
+FunctionDeclaration =
+   header:FunctionHeader __ ";" {
+      return new ast.FunctionDeclaration(header);
    }
 
-AttributeDeclaration = 
-   VariableDeclarationStatement
-
-MethodDeclaration =
-   virtual:("virtual" __)? 
-   header:(FunctionHeader / FunctionHeaderNoType) konst:(__ "const")? __ ";" {
-      header.virtual = (virtual !== "");
-      header.konst = (konst !== "");
-      return new ast.MethodDeclaration(header);
-   }   
-
-InlineMethod =
-   header:FunctionHeader __ konst:(__ "const")? __ body:StatementBlock  {
-      header.inline = true;
-      header.konst = (konst !== "");
-      return new ast.MethodDefinition(header, body);
+FunctionDefinition =
+   inline:("inline" __)? header:FunctionHeader __ body:StatementBlock {
+      header.inline = (inline !== "");
+      return new ast.FunctionDefinition(header, body);
    }
 
-ClassPart =
-   ClassLabel /
-   InlineMethod /
-   MethodDeclaration /
-   AttributeDeclaration
-  
+FunctionHeaderNoType =
+   name:Identifier __ 
+   "(" __ params:FormalParameterList? __ ")" {
+      var header = { name: name };
+      if (params !== '') {
+         header.params = params
+      }
+      return header;
+   }
+
+FunctionHeader =
+   type:Type __ header:FunctionHeaderNoType {
+      header.type = type;
+      return header;
+   }
+
 ClassDeclaration =
   kind:("struct" / "class") __ name:Identifier __ 
   base:(
@@ -861,47 +874,70 @@ ClassDeclaration =
      }
   }
 
-MethodInitialization =
-   ":" init:(__ ConstructorCall)+ {
-      var result = []
-      for (var i in init) {
-         result.push(init[i][1]);
-      }
-      return new ast.MethodInitialization({}, result);
+ClassPart =
+   ClassLabel /
+   InlineMethod /
+   MethodDeclaration /
+   AttributeDeclaration
+
+AccessMode = "public" / "private" / "protected"
+
+ClassLabel = 
+   label:AccessMode ":" { 
+      return label; 
    }
+
+InlineMethod =
+   header:FunctionHeader __ konst:(__ "const")? __ body:StatementBlock  {
+      header.inline = true;
+      header.konst = (konst !== "");
+      return new ast.MethodDefinition(header, body);
+   }
+
+MethodDeclaration =
+   virtual:("virtual" __)? 
+   header:(FunctionHeader / FunctionHeaderNoType) konst:(__ "const")? __ ";" {
+      header.virtual = (virtual !== "");
+      header.konst = (konst !== "");
+      return new ast.MethodDeclaration(header);
+   }   
+
+AttributeDeclaration = 
+   VariableDeclarationStatement
 
 MethodDefinition =
    inline:("inline" __)?
    type:(Type __)?
    header:FunctionHeaderNoType __ konst:(__ "const")? __ 
-   initialization:MethodInitialization? __
+   initlist:InitializationList? __
    body:StatementBlock  {
       if (type !== "") {
          header.type = type[0];
       }
-      if (initialization !== "") {
-         header.initialization = initialization;
+      if (initlist !== "") {
+         header.initlist = initlist;
       }
       header.inline = (inline !== "");
       header.konst = (konst !== "");
       return new ast.MethodDefinition(header, body);
    }
 
-ProgramPart =
-  IncludeDirective /
-  UsingDirective /
-  ClassDeclaration /
-  FunctionDeclaration /
-  FunctionDefinition /
-  MethodDefinition /
-  ArrayTypedefDeclaration /
-  VariableDeclarationStatement /
-  Comment
+InitializationList =
+   ":" init:(__ ConstructorCall)+ {
+      var result = []
+      for (var i in init) {
+         result.push(init[i][1]);
+      }
+      return new ast.InitializationList({}, result);
+   }
+
+
+/************** Program ***************/
 
 Program = 
    head:ProgramPart tail:(__ ProgramPart)* {
       var parts = [head];
-      for (var i = 0; i < tail.length; i++) {
+      for (var i in tail) {
          parts.push(tail[i][1]);
       }  
       return new ast.Program({}, parts);
