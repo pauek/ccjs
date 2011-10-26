@@ -368,11 +368,11 @@ AdditiveExpression =
    } /
    MultiplicativeExpression
 
-ComparisonOperator = "==" / "!=" / "<=" / ">=" / ">" / "<"
+RelationalOperator = "==" / "!=" / "<=" / ">=" / ">" / "<"
 
-ComparisonExpression =
+RelationalExpression =
    left:AdditiveExpression __ 
-   operator:ComparisonOperator __ 
+   operator:RelationalOperator __ 
    right:AdditiveExpression {
       return new ast.BinaryExpression({ 
          left: left, 
@@ -386,10 +386,10 @@ ComparisonExpression =
 AssignmentOperator = "+=" / "*=" / "/=" / "-=" / "%=" / "=" 
 
 LogicalANDExpression =
-   head:ComparisonExpression tail:(__ "&&" __ ComparisonExpression)+ {
+   head:RelationalExpression tail:(__ "&&" __ RelationalExpression)+ {
       return new ast.LogicalANDExpression({}, collect(head, tail, 3));
    } /
-   ComparisonExpression
+   RelationalExpression
 
 LogicalORExpression =
    head:LogicalANDExpression tail:(__ "||" __ LogicalANDExpression)+ {

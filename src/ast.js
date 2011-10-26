@@ -133,7 +133,7 @@ var nodeTypes = [
    "AssignmentExpression",
    "LogicalANDExpression",
    "LogicalORExpression",
-   "ComparisonExpression",
+   "RelationalExpression",
    "CallExpression",
 
    "AloneStatementBlock",
