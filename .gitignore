@@ -7,3 +7,4 @@ cc.pretty.js
 src/parser.js
 parsetest
 other
+*.html
