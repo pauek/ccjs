@@ -184,7 +184,9 @@ BasicTypeName = "bool" / "int" / "string" / "long" / "char" / "float" / "double"
 BasicType = type:BasicTypeName !IdentifierPart { return type; }
 
 Type = 
-   konst:("const" __)? name:(
+   ztatic:("static" __)?
+   konst:("const" __)? 
+   name:(
       IteratorType /
       BasicType / 
       ContainerType /
@@ -196,6 +198,7 @@ Type =
      return new ast.Type({ 
         name: name, 
         konst: (konst !== ""),
+        ztatic: (ztatic !== ""),
         ref: (ref !== ""),
         pointer: (ptr !== ""),
      });
@@ -211,17 +214,19 @@ ArrayTypedefDeclaration =
    }
 
 PrimaryExpression =
-   MethodCallExpression /
    NewCallExpression /
-   CallExpression /
-   Literal /
    ReferenceExpression /
    ConditionalExpression /
+   Literal /
+   "(" __ expr:Expression __ ")" { return expr; }
+
+DirectReferenceExpression =
+   CallExpression /
+   VariableReference /
    "(" __ expr:Expression __ ")" { return expr; }
 
 ReferenceExpression =
-   AccessExpression /
-   VariableReference 
+   AccessExpression
 
 PostfixExpression = 
    left:ReferenceExpression _ operator:PostfixOperator {
@@ -243,7 +248,7 @@ UnaryExpression =
      });
   }
 
-UnaryOperator = "++" / "--" / "+" / "-" / "~" / "!" / "*"
+UnaryOperator = "++" / "--" / "+" / "-" / "~" / "!" / "*" / "&"
 
 MultiplicativeOperator
   = operator:("*" / "/" / "%") !"=" { return operator; }
@@ -353,23 +358,33 @@ VariableReference =
    }
 
 SingleAccess = 
-   "." __ member:Identifier {
-      return new ast.MemberAccess({ member: member });
-   } /
    "[" __ index:Expression __ "]" {
       return new ast.ArrayAccess({ index: index });
    } /
-   "->" __ member:Identifier {
-      return new ast.PointerAccess({ member: member });
+   "." __ id:Identifier args:(__ ActualParameterList)? {
+      if (args !== "") {
+         return new ast.MethodCall({ method: id, args: args });
+      } else {
+         return new ast.MemberAccess({ member: id });
+      }
+   } /
+   "->" __ id:Identifier args:(__ ActualParameterList)? {
+      if (args !== "") {
+         return new ast.PtrMethodCall({ method: id, args: args });
+      } else {
+         return new ast.PtrMemberAccess({ member: id });
+      }
    }
 
 AccessExpression =
-   head:Identifier rest:(__ SingleAccess)+ {
-      var accesses = [];
+   head:DirectReferenceExpression rest:(__ SingleAccess)* {
+      var curr = head;
       for (var i in rest) {
-         accesses.push(rest[i][1]);
+         var next = rest[i][1];
+         next.obj = curr;
+         curr = next;
       }
-      return new ast.AccessExpression({ head: head }, accesses);
+      return curr;
    }
 
 FormalParameter =
@@ -502,18 +517,29 @@ ListType =
       });
    }
 
+PairType =
+   ("std" __ "::" __)? 
+   "pair" __ "<" __ first:Type __ "," __ second:Type __ ">" {
+      return new ast.PairType({
+         first: first,
+         second: second,
+      });
+   }
+
 MapType =
    ("std" __ "::" __)? 
-   "map" __ "<" __ key:Type __ "," __ value:Type __ ">" {
+   multi:("multi")? "map" __ "<" __ key:Type __ "," __ value:Type __ ">" {
       return new ast.MapType({
          key: key,
          value: value,
+         multimap: (multi !== ""),
       });
    }
 
 ContainerType = 
    VectorType /
    ListType /
+   PairType /
    MapType
 
 IteratorType =
@@ -692,18 +718,13 @@ StatementList =
       return result;
    }
 
-MethodCallExpression =
-   access:AccessExpression __ args:ActualParameterList {
-      return new ast.MethodCall({ access: access, args: args });
-   }
-
 CallExpression = 
    name:Identifier __ args:ActualParameterList {
       return new ast.CallExpression({ name: name, args: args });
    }
 
 CallStatement =
-   call:(CallExpression / MethodCallExpression) __ ";" {
+   call:(CallExpression / AccessExpression) __ ";" {
       return new ast.CallStatement({ call: call });
    }
 
@@ -746,7 +767,16 @@ FunctionDeclaration =
    }
 
 IncludeDirective =
-  "#include" _ [<"] file:[_A-Za-z0-9.]* [>"] {
+  LocalIncludeDirective /
+  SystemIncludeDirective
+
+LocalIncludeDirective =
+  "#include" _ ["] file:[_A-Za-z0-9./]* ["] {
+     return new ast.IncludeDirective({ file: file.join('') });
+  }
+
+SystemIncludeDirective =
+  "#include" _ [<] file:[_A-Za-z0-9./]* [>] {
      return new ast.IncludeDirective({ file: file.join('') });
   }
 
@@ -861,9 +891,9 @@ ProgramPart =
   IncludeDirective /
   UsingDirective /
   ClassDeclaration /
-  MethodDefinition /
   FunctionDeclaration /
   FunctionDefinition /
+  MethodDefinition /
   ArrayTypedefDeclaration /
   VariableDeclarationStatement /
   Comment

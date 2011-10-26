@@ -100,11 +100,13 @@ var nodeTypes = [
    "AccessExpression",
    "MemberAccess",
    "ArrayAccess",
-   "PointerAccess",
+   "PtrMemberAccess",
+   "PtrMethodCall",
 
    "Type", 
    "VectorType",
    "ListType",
+   "PairType",
    "MapType",
    "IteratorType",
 

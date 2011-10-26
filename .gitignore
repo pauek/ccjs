@@ -1,7 +1,9 @@
 *~
+a.out
 .redo
 cc.js
 cc.min.js
 cc.pretty.js
 src/parser.js
 parsetest
+other
