@@ -12,15 +12,6 @@ function collect(head, tail, n) {
    return result;
 }
 
-function inspect(prefix, obj) {
-   var msg = "";
-   if (prefix !== undefined) { 
-      msg = prefix + ": ";
-   }
-   msg += util.inspect(obj, false, null);
-   console.log(msg);
-}
-
 }
 
 start = 
@@ -761,10 +752,10 @@ ProgramPart =
    IncludeDirective /
    UsingDirective /
    ClassDeclaration /
+   FunctionDefinition /
+   FunctionDeclaration /
    ConstructorDefinition /
    MethodDefinition /
-   FunctionDeclaration /
-   FunctionDefinition /
    ArrayTypedefDeclaration /
    VariableDeclarationStatement /
    Comment

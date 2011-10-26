@@ -56,9 +56,18 @@ ast.Node.prototype = {
 
 /* Construct node types */
 
+ast.inspect = function (prefix, obj) {
+   var msg = "";
+   if (prefix !== undefined) { 
+      msg = prefix + ": ";
+   }
+   msg += util.inspect(obj, false, null);
+   console.log(msg);
+}
+
 ast.makeNodeType = function (typename) {
    var NewType = function (obj, children) {
-      // console.log(typename);
+      ast.inspect(typename, obj);
       for (var prop in obj) {
          if (obj.hasOwnProperty(prop)) {
 	         this[prop] = obj[prop];
