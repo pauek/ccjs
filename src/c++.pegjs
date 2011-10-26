@@ -1,7 +1,7 @@
 {
         
 function collect(head, tail, n) {
-   var k = (n !== undefined ? 0 : n);
+   var k = (n === undefined ? 0 : n);
    var result = [];
    if (head !== null) {
       result.push(head);
@@ -10,6 +10,15 @@ function collect(head, tail, n) {
       result.push(tail[i][k]);
    }
    return result;
+}
+
+function inspect(prefix, obj) {
+   var msg = "";
+   if (prefix !== undefined) { 
+      msg = prefix + ": ";
+   }
+   msg += util.inspect(obj, false, null);
+   console.log(msg);
 }
 
 }
@@ -368,7 +377,7 @@ AdditiveExpression =
    } /
    MultiplicativeExpression
 
-RelationalOperator = "==" / "!=" / "<=" / ">=" / ">" / "<"
+RelationalOperator = "<=" / ">=" / ">" / "<"
 
 RelationalExpression =
    left:AdditiveExpression __ 
@@ -383,13 +392,27 @@ RelationalExpression =
    InputExpression /
    AdditiveExpression
 
+EqualityOperator = "==" / "!="
+
+EqualityExpression =
+   left:RelationalExpression __ 
+   operator:EqualityOperator __ 
+   right:RelationalExpression {
+      return new ast.BinaryExpression({ 
+         left: left, 
+         operator: operator, 
+         right: right 
+      });
+   } /
+   RelationalExpression
+
 AssignmentOperator = "+=" / "*=" / "/=" / "-=" / "%=" / "=" 
 
 LogicalANDExpression =
-   head:RelationalExpression tail:(__ "&&" __ RelationalExpression)+ {
+   head:EqualityExpression tail:(__ "&&" __ EqualityExpression)+ {
       return new ast.LogicalANDExpression({}, collect(head, tail, 3));
    } /
-   RelationalExpression
+   EqualityExpression
 
 LogicalORExpression =
    head:LogicalANDExpression tail:(__ "||" __ LogicalANDExpression)+ {
@@ -881,9 +904,5 @@ InitializationList =
 
 Program = 
    head:ProgramPart tail:(__ ProgramPart)* {
-      var parts = [head];
-      for (var i in tail) {
-         parts.push(tail[i][1]);
-      }  
-      return new ast.Program({}, parts);
+      return new ast.Program({}, collect(head, tail, 1));
    }

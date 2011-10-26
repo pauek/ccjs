@@ -1,4 +1,6 @@
 
+var util = require("util");
+
 function usage() {
    console.log("usage: cc.js <input-file>");
    process.exit(1);
@@ -38,6 +40,7 @@ fs.readFile(opts.ccfile, 'utf-8', function (err, data) {
       } catch (e) {
          console.log(P.output);
          console.log(e.message);
+         console.log(util.inspect(tree, false, null));
       }
    } else if ('prettyprint' in opts) {
       var tree = cc.parse(data);
